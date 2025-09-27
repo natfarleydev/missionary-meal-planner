@@ -26,13 +26,13 @@ def main():
     if 'companionships_data' not in st.session_state:
         st.session_state.companionships_data = []
     if 'num_companionships' not in st.session_state:
-        st.session_state.num_companionships = 2
+        st.session_state.num_companionships = 4
     if 'missionary_counts' not in st.session_state:
         st.session_state.missionary_counts = {}
     if 'dates' not in st.session_state:
         st.session_state.dates = {}
-    if 'generated_image' not in st.session_state:
-        st.session_state.generated_image = None
+    if 'generated_pdf' not in st.session_state:
+        st.session_state.generated_pdf = None
 
     # Sidebar for basic settings
     with st.sidebar:
@@ -218,23 +218,31 @@ def main():
         st.markdown(f"- **{day}:** {st.session_state.dates[day].strftime('%B %d, %Y')}")
 
     # Generate button
-    if st.button("🍽️ Generate Meal Planner", type="primary", use_container_width=True):
+    if st.button("🍽️ Generate Meal Planner", type="primary", width='stretch'):
         generate_meal_planner()
 
-    # Display generated image if available
-    if st.session_state.generated_image:
+    # Display generated PDF if available
+    if st.session_state.generated_pdf:
         st.subheader("📋 Generated Meal Planner")
 
-        # Display the image
-        st.image(st.session_state.generated_image, use_container_width=True)
+        # Display the PDF using an iframe
+        pdf_b64 = base64.b64encode(st.session_state.generated_pdf).decode()
+        pdf_html = f'''
+        <iframe src="data:application/pdf;base64,{pdf_b64}"
+                width="100%"
+                height="600"
+                style="border: none;">
+        </iframe>
+        '''
+        st.components.v1.html(pdf_html, height=600)
 
         # Download button
         st.download_button(
-            label="💾 Download Image",
-            data=st.session_state.generated_image,
-            file_name="missionary_meal_planner.png",
-            mime="image/png",
-            use_container_width=True
+            label="💾 Download PDF",
+            data=st.session_state.generated_pdf,
+            file_name="missionary_meal_planner.pdf",
+            mime="application/pdf",
+            width='stretch'
         )
 
 def generate_meal_planner():
@@ -321,108 +329,16 @@ def generate_meal_planner():
         # Write PDF first
         html_doc.write_pdf("temp_planner.pdf", stylesheets=[CSS(string=css_string)])
 
-        # Convert PDF to PNG using PIL/PDF2Image if available
-        try:
-            from pdf2image import convert_from_path
-            images = convert_from_path("temp_planner.pdf", dpi=150)
-            if images:
-                # Save first page as PNG
-                temp_img_path = "temp_planner.png"
-                images[0].save(temp_img_path, "PNG")
+        # Read the generated PDF
+        with open("temp_planner.pdf", "rb") as f:
+            pdf_data = f.read()
 
-                # Read the generated PNG
-                with open(temp_img_path, "rb") as f:
-                    image_data = f.read()
-
-                # Clean up temp file
-                try:
-                    os.remove(temp_img_path)
-                except:
-                    pass
-            else:
-                raise Exception("No images generated from PDF")
-        except ImportError:
-            # Fallback: create a simple text-based image
-            from PIL import Image, ImageDraw, ImageFont
-
-            # Create a simple image
-            img = Image.new('RGB', (800, 1000), color='white')
-            draw = ImageDraw.Draw(img)
-
-            # Try to use a system font
-            try:
-                font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
-                font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 16)
-                font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12)
-            except:
-                font_large = ImageFont.load_default()
-                font_medium = ImageFont.load_default()
-                font_small = ImageFont.load_default()
-
-            y_position = 50
-
-            # Title
-            draw.text((50, y_position), "Missionary Meal Planner", fill='black', font=font_large)
-            y_position += 50
-
-            # Create table header
-            draw.text((50, y_position), "Missionary Dinner List", fill='black', font=font_large)
-            y_position += 40
-            draw.text((50, y_position), "Please write your name, time and telephone number", fill='black', font=font_small)
-            y_position += 50
-
-            # Draw table headers
-            headers = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-            header_y = y_position
-            x_pos = 50
-
-            for header in headers:
-                draw.text((x_pos, header_y), header, fill='black', font=font_medium)
-                x_pos += 100
-
-            y_position += 40
-
-            # Draw rows for each companionship (one row per companionship)
-            for i, comp in enumerate(companionships):
-                row_y = y_position
-
-                # Draw companionship info (left column) - all missionaries
-                y_offset = 0
-                for j, missionary in enumerate(comp['missionaries']):
-                    name = missionary['name'] or f"Missionary {j+1}"
-                    draw.text((60, row_y + y_offset), name, fill='black', font=font_small)
-                    y_offset += 15
-
-                # Draw phone number
-                draw.text((60, row_y + y_offset + 5), comp['phone_number'], fill='black', font=font_small)
-
-                # Draw day columns (simple lines)
-                x_pos = 150
-                for day in headers[1:]:  # Skip empty header
-                    # Draw three lines for name, time, phone
-                    line_y = row_y + 10
-                    for line in range(3):
-                        draw.line((x_pos + 10, line_y, x_pos + 80, line_y), fill='black', width=1)
-                        line_y += 20
-
-                    x_pos += 100
-
-                y_position += 80
-
-            # Save image
-            img.save("temp_planner.png")
-
-            # Read the generated PNG
-            with open("temp_planner.png", "rb") as f:
-                image_data = f.read()
-
-        # Store in session state
-        st.session_state.generated_image = image_data
+        # Store PDF in session state
+        st.session_state.generated_pdf = pdf_data
 
         # Clean up temp files
         try:
             os.remove("temp_planner.pdf")
-            os.remove("temp_planner.png")
         except:
             pass
 
