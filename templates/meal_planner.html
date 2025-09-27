@@ -32,20 +32,29 @@
             margin: 0;
             font-size: 13px;
             height: auto;
+            table-layout: fixed;
         }
         th, td {
             border: 1px solid black;
             padding: 6px;
             text-align: center;
             vertical-align: top;
+            word-break: break-word;
         }
         th {
             background-color: #f0f0f0;
             font-weight: bold;
             min-height: 44px;
         }
+        thead th:first-child,
         .companionship-cell {
-            width: 200px;
+            width: 180px;
+        }
+        thead th:not(:first-child),
+        .day-cell {
+            width: calc((100% - 180px) / 7);
+        }
+        .companionship-cell {
             text-align: left;
             padding: 10px;
             vertical-align: top;
@@ -92,8 +101,6 @@
             margin: 0;
         }
         .phone-number {
-            font-size: 10px;
-            color: #666;
             margin-top: 4px;
             text-align: center;
         }
@@ -156,14 +163,14 @@
                             {% if missionary.photo %}
                                 <img src="{{ missionary.photo }}" alt="{{ missionary.name }}" class="missionary-photo">
                             {% else %}
-                                <div class="no-photo">No Photo</div>
+                                <div class="no-photo"></div>
                             {% endif %}
                             <div class="missionary-details">
                                 <div class="missionary-name">{{ missionary.title }} {{ missionary.name }}</div>
                             </div>
                         </div>
                         {% endfor %}
-                        <div class="phone-number">{{ companionship.phone_number or 'Phone' }}</div>
+                        <div class="phone-number">Phone: {{ companionship.phone_number or 'Phone' }}</div>
                     </div>
                 </td>
                 <td class="day-cell">
