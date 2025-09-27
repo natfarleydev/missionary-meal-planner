@@ -1,4 +1,3 @@
-import json
 import streamlit as st
 import base64
 from jinja2 import Template
@@ -7,12 +6,10 @@ from PIL import Image
 import os
 import tempfile
 import uuid
-import streamlit.components.v1 as st_components
 from components import missionary_input_field
 from state_model import (
     AppState,
     DEFAULT_MISSIONARIES_PER_COMPANIONSHIP,
-    LOCAL_STORAGE_KEY,
     create_companionship,
 )
 
@@ -182,11 +179,6 @@ def main():
     # Generate button
     if st.button("🍽️ Generate Meal Planner", type="primary", width='stretch'):
         generate_meal_planner()
-
-    st.markdown("---")
-    if st.button("💾 Save Planner State", key="save_state_button"):
-        save_state_to_local_storage()
-        st.success("State saved to your browser storage.")
 
     # Display generated PDF if available
     if st.session_state.generated_pdf:
@@ -374,24 +366,6 @@ def normalize_session_state() -> None:
         companionship.setdefault("phone_number", "")
         companionship.setdefault("schedule", [])
 
-
-def save_state_to_local_storage() -> None:
-    """Persist the current planner state into the browser's localStorage."""
-
-    app_state = AppState.from_session_state(st.session_state)
-    payload = app_state.to_storage_payload()
-    payload_json = json.dumps(payload)
-
-    st_components.html(
-        f"""
-        <script>
-        const storageKey = "{LOCAL_STORAGE_KEY}";
-        const payload = {payload_json};
-        window.localStorage.setItem(storageKey, JSON.stringify(payload));
-        </script>
-        """,
-        height=0,
-    )
 
 if __name__ == "__main__":
     main()

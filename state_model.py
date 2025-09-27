@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 
 DEFAULT_COMPANIONSHIP_COUNT = 4
 DEFAULT_MISSIONARIES_PER_COMPANIONSHIP = 2
-LOCAL_STORAGE_KEY = "missionaryMealPlanner.appState"
 
 
 def _default_missionaries() -> List["Missionary"]:
@@ -66,18 +65,6 @@ class AppState(BaseModel):
             "generated_pdf": session_state.get("generated_pdf"),
         }
         return cls.model_validate(payload)
-
-    def to_storage_payload(self) -> Dict[str, Any]:
-        """Serialize the state into a JSON-compatible dictionary for localStorage."""
-
-        storage_copy = self.model_copy(update={"generated_pdf": None}, deep=True)
-        payload = storage_copy.model_dump()
-        payload["missionary_counts"] = {
-            str(key): value for key, value in payload["missionary_counts"].items()
-        }
-        payload["companionships_data"] = [item.model_dump() for item in storage_copy.companionships_data]
-        return payload
-
 
 def create_companionship(missionary_count: int) -> Companionship:
     """Create a blank companionship with a specific number of missionaries."""
