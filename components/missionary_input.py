@@ -59,11 +59,11 @@ class MissionaryInput:
             # Title dropdown
             title_options = ["Elder", "Sister"]
             title_index = 0 if current_title == "Elder" else 1
-            title = st.selectbox(
+            title = st.radio(
                 f"{self.label} Title",
                 options=title_options,
                 index=title_index,
-                key=title_key or f"{self.key_prefix}_title",
+                key=f"{self.key_prefix}_title",
                 label_visibility="collapsed"
             )
 

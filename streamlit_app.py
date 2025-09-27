@@ -8,7 +8,7 @@ from PIL import Image
 import os
 import tempfile
 import uuid
-from components.missionary_input import missionary_input_field
+from components import missionary_input_field
 
 # Page configuration
 st.set_page_config(
@@ -27,6 +27,8 @@ def main():
         st.session_state.companionships_data = []
     if 'num_companionships' not in st.session_state:
         st.session_state.num_companionships = 2
+    if 'missionary_counts' not in st.session_state:
+        st.session_state.missionary_counts = {}
     if 'dates' not in st.session_state:
         st.session_state.dates = {}
     if 'generated_image' not in st.session_state:
@@ -46,15 +48,17 @@ def main():
         if num_companionships != st.session_state.num_companionships:
             st.session_state.num_companionships = num_companionships
             st.session_state.companionships_data = []
+            st.session_state.missionary_counts = {}
             st.rerun()
 
         st.markdown("---")
         st.markdown("### Instructions")
         st.markdown("""
         1. Set the number of companionships
-        2. Upload photos and enter names for each missionary
-        3. Enter dates for each day of the week
-        4. Click 'Generate Meal Planner' to create the image
+        2. For each companionship, set the number of missionaries (2 or 3)
+        3. Upload photos and enter names for each missionary
+        4. Enter dates for each day of the week
+        5. Click 'Generate Meal Planner' to create the image
         """)
 
     # Main content
@@ -63,9 +67,11 @@ def main():
     # Initialize companionships data structure
     if len(st.session_state.companionships_data) != num_companionships:
         st.session_state.companionships_data = []
-        for _ in range(num_companionships):
+        for i in range(num_companionships):
+            # Default to 2 missionaries per companionship, but this can be changed per companionship
+            missionary_count = st.session_state.missionary_counts.get(i, 2)
             st.session_state.companionships_data.append({
-                'missionaries': [{'name': 'Elder', 'photo': None} for _ in range(2)],
+                'missionaries': [{'name': 'Elder', 'photo': None} for _ in range(missionary_count)],
                 'phone_number': '',
                 'schedule': []
             })
@@ -74,9 +80,36 @@ def main():
     for i in range(num_companionships):
         st.subheader(f"Companionship {i + 1}")
 
+        # Number of missionaries selector for this companionship
+        # Ensure companionship data exists
+        while i >= len(st.session_state.companionships_data):
+            st.session_state.companionships_data.append({
+                'missionaries': [{'name': 'Elder', 'photo': None} for _ in range(2)],
+                'phone_number': '',
+                'schedule': []
+            })
+
+        current_count = len(st.session_state.companionships_data[i]['missionaries'])
+        missionary_count = st.radio(
+            f"Number of Missionaries in Companionship {i + 1}",
+            options=[2, 3],
+            index=0 if current_count == 2 else 1,
+            key=f"missionary_count_{i}",
+            horizontal=True
+        )
+
+        # Update the missionary count for this companionship
+        if missionary_count != current_count:
+            st.session_state.missionary_counts[i] = missionary_count
+            if i < len(st.session_state.companionships_data):
+                st.session_state.companionships_data[i]['missionaries'] = [
+                    {'name': 'Elder', 'photo': None} for _ in range(missionary_count)
+                ]
+            st.rerun()
+
         # Missionary inputs
         missionaries_data = []
-        for j in range(2):
+        for j in range(missionary_count):
             st.markdown(f"**Missionary {j + 1}**")
 
             # Photo upload
@@ -353,7 +386,7 @@ def generate_meal_planner():
             for i, comp in enumerate(companionships):
                 row_y = y_position
 
-                # Draw companionship info (left column) - both missionaries
+                # Draw companionship info (left column) - all missionaries
                 y_offset = 0
                 for j, missionary in enumerate(comp['missionaries']):
                     name = missionary['name'] or f"Missionary {j+1}"
