@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Missionary Dinner List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background-color: white;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin: 0 0 10px 0;
+            color: #333;
+            font-weight: bold;
+        }
+        .header-subtitle {
+            font-size: 1.1em;
+            color: #666;
+            margin: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            height: 60px;
+        }
+        .companionship-cell {
+            width: 200px;
+            text-align: left;
+            padding: 10px;
+            vertical-align: top;
+        }
+        .missionary-row {
+            height: 100px;
+        }
+        .companionship-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .missionary-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .missionary-photo {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #ccc;
+        }
+        .no-photo {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            color: #666;
+        }
+        .missionary-details {
+            text-align: left;
+            flex: 1;
+        }
+        .missionary-name {
+            font-weight: bold;
+            font-size: 12px;
+            margin: 0;
+        }
+        .phone-number {
+            font-size: 10px;
+            color: #666;
+            margin-top: 4px;
+            text-align: center;
+        }
+        .day-cell {
+            height: 100px;
+            padding: 8px;
+        }
+        .day-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+        .day-line {
+            height: 2px;
+            background-color: #ddd;
+            margin: 2px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Missionary Dinner List</h1>
+        <div class="header-subtitle">Please write your name, time and telephone number</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th></th>
+                <th>Monday</th>
+                <th>Tuesday</th>
+                <th>Wednesday</th>
+                <th>Thursday</th>
+                <th>Friday</th>
+                <th>Saturday</th>
+                <th>Sunday</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for companionship in companionships %}
+            <tr class="missionary-row">
+                <td class="companionship-cell">
+                    <div class="companionship-info">
+                        {% for missionary in companionship.missionaries %}
+                        <div class="missionary-info">
+                            {% if missionary.photo %}
+                                <img src="{{ missionary.photo }}" alt="{{ missionary.name }}" class="missionary-photo">
+                            {% else %}
+                                <div class="no-photo">No Photo</div>
+                            {% endif %}
+                            <div class="missionary-details">
+                                <div class="missionary-name">{{ missionary.name }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <div class="phone-number">{{ companionship.phone_number or 'Phone' }}</div>
+                    </div>
+                </td>
+                <td class="day-cell">
+                    <div class="day-content">
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                    </div>
+                </td>
+                <td class="day-cell">
+                    <div class="day-content">
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                    </div>
+                </td>
+                <td class="day-cell">
+                    <div class="day-content">
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                    </div>
+                </td>
+                <td class="day-cell">
+                    <div class="day-content">
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                    </div>
+                </td>
+                <td class="day-cell">
+                    <div class="day-content">
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                    </div>
+                </td>
+                <td class="day-cell">
+                    <div class="day-content">
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                    </div>
+                </td>
+                <td class="day-cell">
+                    <div class="day-content">
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                        <div class="day-line"></div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        Generated by Missionary Meal Planner App
+    </div>
+</body>
+</html>
