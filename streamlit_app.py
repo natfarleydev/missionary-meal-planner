@@ -17,61 +17,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 2.5rem;
-        font-weight: bold;
-        text-align: center;
-        color: #1f77b4;
-        margin-bottom: 2rem;
-    }
-    .section-header {
-        font-size: 1.3rem;
-        font-weight: bold;
-        color: #2c3e50;
-        margin-top: 2rem;
-        margin-bottom: 1rem;
-        padding: 0.5rem;
-        background-color: #ecf0f1;
-        border-radius: 5px;
-    }
-    .companionship-card {
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 10px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-    }
-    .missionary-input {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-    .photo-upload {
-        flex: 0 0 100px;
-    }
-    .name-input {
-        flex: 1;
-    }
-    .date-inputs {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
-        margin-top: 1rem;
-    }
-    .date-input {
-        padding: 0.5rem;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-    }
-</style>
-""", unsafe_allow_html=True)
 
 def main():
-    st.markdown('<div class="main-header">🍽️ Missionary Meal Planner</div>', unsafe_allow_html=True)
+    st.title("🍽️ Missionary Meal Planner")
 
     # Initialize session state
     if 'companionships_data' not in st.session_state:
@@ -109,98 +57,117 @@ def main():
         """)
 
     # Main content
-    st.markdown('<div class="section-header">📸 Missionary Information</div>', unsafe_allow_html=True)
+    st.subheader("📸 Missionary Information")
 
     # Initialize companionships data structure
-    while len(st.session_state.companionships_data) < num_companionships:
-        st.session_state.companionships_data.append({
-            'missionaries': [{'name': '', 'photo': None} for _ in range(2)],
-            'phone_number': '',
-            'schedule': []
-        })
+    if len(st.session_state.companionships_data) != num_companionships:
+        st.session_state.companionships_data = []
+        for _ in range(num_companionships):
+            st.session_state.companionships_data.append({
+                'missionaries': [{'name': '', 'photo': None} for _ in range(2)],
+                'phone_number': '',
+                'schedule': []
+            })
 
     # Input forms for each companionship
     for i in range(num_companionships):
-        with st.container():
-            st.markdown(f"""
-            <div class="companionship-card">
-            <h4>Companionship {i + 1}</h4>
-            </div>
-            """, unsafe_allow_html=True)
+        st.subheader(f"Companionship {i + 1}")
 
-            # Missionary inputs
-            missionaries_data = []
-            cols = st.columns(2)
-            for j in range(2):
-                with cols[j]:
-                    st.markdown(f"**Missionary {j + 1}**")
+        # Missionary inputs
+        missionaries_data = []
+        for j in range(2):
+            st.markdown(f"**Missionary {j + 1}**")
 
-                    # Photo upload
-                    photo = st.file_uploader(
-                        f"Photo for Missionary {j + 1}",
-                        type=['png', 'jpg', 'jpeg'],
-                        key=f"photo_{i}_{j}",
-                        help="Upload a clear photo of the missionary"
-                    )
-
-                    # Name input
-                    name = st.text_input(
-                        f"Name of Missionary {j + 1}",
-                        value=st.session_state.companionships_data[i]['missionaries'][j]['name'],
-                        key=f"name_{i}_{j}",
-                        placeholder="Enter missionary name"
-                    )
-
-                    # Process and save photo
-                    photo_path = None
-                    if photo is not None:
-                        # Convert to PIL Image and save temporarily
-                        pil_image = Image.open(photo)
-                        # Resize to reasonable size for web display
-                        pil_image = pil_image.resize((200, 200))
-
-                        # Save to temp file
-                        temp_dir = tempfile.gettempdir()
-                        photo_filename = f"missionary_photo_{uuid.uuid4()}.png"
-                        photo_path = os.path.join(temp_dir, photo_filename)
-                        pil_image.save(photo_path, "PNG")
-
-                    missionaries_data.append({
-                        'name': name,
-                        'photo': photo_path
-                    })
-
-            # Phone number input
-            phone_number = st.text_input(
-                f"Phone Number for Companionship {i + 1}",
-                value=st.session_state.companionships_data[i]['phone_number'],
-                key=f"phone_{i}",
-                placeholder="Enter phone number"
+            # Photo upload
+            photo = st.file_uploader(
+                f"Photo for Missionary {j + 1}",
+                type=['png', 'jpg', 'jpeg'],
+                key=f"photo_{i}_{j}",
+                help="Upload a clear photo of the missionary"
             )
 
-            # Update session state
+            # Name input
+            current_value = ""
+            if (i < len(st.session_state.companionships_data) and
+                'missionaries' in st.session_state.companionships_data[i] and
+                j < len(st.session_state.companionships_data[i]['missionaries']) and
+                'name' in st.session_state.companionships_data[i]['missionaries'][j]):
+                current_value = st.session_state.companionships_data[i]['missionaries'][j]['name']
+
+            name = st.text_input(
+                f"Name of Missionary {j + 1}",
+                value=current_value,
+                key=f"name_{i}_{j}",
+                placeholder="Enter missionary name"
+            )
+
+            # Process and save photo
+            photo_path = None
+            if photo is not None:
+                # Convert to PIL Image and save temporarily
+                pil_image = Image.open(photo)
+                # Resize to reasonable size for web display
+                pil_image = pil_image.resize((200, 200))
+
+                # Save to temp file
+                temp_dir = tempfile.gettempdir()
+                photo_filename = f"missionary_photo_{uuid.uuid4()}.png"
+                photo_path = os.path.join(temp_dir, photo_filename)
+                pil_image.save(photo_path, "PNG")
+
+            missionaries_data.append({
+                'name': name,
+                'photo': photo_path
+            })
+
+        # Phone number input
+        phone_value = ""
+        if (i < len(st.session_state.companionships_data) and
+            'phone_number' in st.session_state.companionships_data[i]):
+            phone_value = st.session_state.companionships_data[i]['phone_number']
+
+        phone_number = st.text_input(
+            f"Phone Number for Companionship {i + 1}",
+            value=phone_value,
+            key=f"phone_{i}",
+            placeholder="Enter phone number"
+        )
+
+        # Update session state
+        if i < len(st.session_state.companionships_data):
             st.session_state.companionships_data[i]['missionaries'] = missionaries_data
             st.session_state.companionships_data[i]['phone_number'] = phone_number
 
     # Date inputs section
-    st.markdown('<div class="section-header">📅 Weekly Schedule</div>', unsafe_allow_html=True)
+    st.subheader("📅 Weekly Schedule")
 
-    st.markdown("Enter the dates for each day of the week:")
+    st.markdown("Enter the starting date for the week:")
 
-    # This should be defined at the top of the function or as a global variable
+    # Get the starting date
+    start_date = st.date_input(
+        "Starting Date",
+        value=st.session_state.dates.get('start_date', datetime.now().date()),
+        key="start_date_input"
+    )
+
+    # Calculate dates for the week
     days_of_week = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    st.session_state.dates = {}
 
-    date_cols = st.columns(7)
+    # Find which day of the week the start_date is
+    start_day_index = start_date.weekday()  # 0=Monday, 6=Sunday
+    days_since_sunday = (start_day_index + 1) % 7  # Convert to days since Sunday (0=Sunday, 6=Saturday)
+
     for i, day in enumerate(days_of_week):
-        with date_cols[i]:
-            date_value = st.session_state.dates.get(day, datetime.now().date())
-            date_input = st.date_input(
-                day,
-                value=date_value,
-                key=f"date_{day}",
-                label_visibility="collapsed"
-            )
-            st.session_state.dates[day] = date_input
+        # Calculate the date for this day of the week
+        days_to_add = (i - days_since_sunday) % 7
+        day_date = start_date + timedelta(days=days_to_add)
+        st.session_state.dates[day] = day_date
+
+    # Display the calculated dates
+    st.markdown("**Week dates:**")
+    for day in days_of_week:
+        st.markdown(f"- **{day}:** {st.session_state.dates[day].strftime('%B %d, %Y')}")
 
     # Generate button
     if st.button("🍽️ Generate Meal Planner", type="primary", use_container_width=True):
@@ -208,7 +175,7 @@ def main():
 
     # Display generated image if available
     if st.session_state.generated_image:
-        st.markdown('<div class="section-header">📋 Generated Meal Planner</div>', unsafe_allow_html=True)
+        st.subheader("📋 Generated Meal Planner")
 
         # Display the image
         st.image(st.session_state.generated_image, use_column_width=True)
