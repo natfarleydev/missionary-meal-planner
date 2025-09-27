@@ -1,3 +1,4 @@
+import json
 import streamlit as st
 from datetime import datetime, timedelta
 import base64
@@ -8,7 +9,14 @@ from PIL import Image
 import os
 import tempfile
 import uuid
+import streamlit.components.v1 as st_components
 from components import missionary_input_field
+from state_model import (
+    AppState,
+    DEFAULT_MISSIONARIES_PER_COMPANIONSHIP,
+    LOCAL_STORAGE_KEY,
+    create_companionship,
+)
 
 # Page configuration
 st.set_page_config(
@@ -23,16 +31,11 @@ def main():
     st.title("🍽️ Missionary Meal Planner")
 
     # Initialize session state
-    if 'companionships_data' not in st.session_state:
-        st.session_state.companionships_data = []
-    if 'num_companionships' not in st.session_state:
-        st.session_state.num_companionships = 4
-    if 'missionary_counts' not in st.session_state:
-        st.session_state.missionary_counts = {}
-    if 'dates' not in st.session_state:
-        st.session_state.dates = {}
-    if 'generated_pdf' not in st.session_state:
-        st.session_state.generated_pdf = None
+    if "companionships_data" not in st.session_state:
+        default_state = AppState.create_default()
+        st.session_state.update(default_state.to_session_state())
+
+    normalize_session_state()
 
     # Sidebar for basic settings
     with st.sidebar:
@@ -66,15 +69,12 @@ def main():
 
     # Initialize companionships data structure
     if len(st.session_state.companionships_data) != num_companionships:
-        st.session_state.companionships_data = []
-        for i in range(num_companionships):
-            # Default to 2 missionaries per companionship, but this can be changed per companionship
-            missionary_count = st.session_state.missionary_counts.get(i, 2)
-            st.session_state.companionships_data.append({
-                'missionaries': [{'name': 'Elder', 'photo': None} for _ in range(missionary_count)],
-                'phone_number': '',
-                'schedule': []
-            })
+        st.session_state.companionships_data = [
+            create_companionship(
+                st.session_state.missionary_counts.get(i, DEFAULT_MISSIONARIES_PER_COMPANIONSHIP)
+            ).model_dump()
+            for i in range(num_companionships)
+        ]
 
     # Input forms for each companionship
     for i in range(num_companionships):
@@ -83,11 +83,9 @@ def main():
         # Number of missionaries selector for this companionship
         # Ensure companionship data exists
         while i >= len(st.session_state.companionships_data):
-            st.session_state.companionships_data.append({
-                'missionaries': [{'name': 'Elder', 'photo': None} for _ in range(2)],
-                'phone_number': '',
-                'schedule': []
-            })
+            st.session_state.companionships_data.append(
+                create_companionship(DEFAULT_MISSIONARIES_PER_COMPANIONSHIP).model_dump()
+            )
 
         current_count = len(st.session_state.companionships_data[i]['missionaries'])
         missionary_count = st.radio(
@@ -102,9 +100,8 @@ def main():
         if missionary_count != current_count:
             st.session_state.missionary_counts[i] = missionary_count
             if i < len(st.session_state.companionships_data):
-                st.session_state.companionships_data[i]['missionaries'] = [
-                    {'name': 'Elder', 'photo': None} for _ in range(missionary_count)
-                ]
+                refreshed_companionship = create_companionship(missionary_count).model_dump()
+                st.session_state.companionships_data[i]['missionaries'] = refreshed_companionship['missionaries']
             st.rerun()
 
         # Missionary inputs
@@ -121,27 +118,20 @@ def main():
             )
 
             # Combined title and name input
-            current_full_name = "Elder"
+            current_title = "Elder"
+            current_name = ""
+            current_photo = None
             if (i < len(st.session_state.companionships_data) and
                 'missionaries' in st.session_state.companionships_data[i] and
                 j < len(st.session_state.companionships_data[i]['missionaries'])):
 
                 missionary_data = st.session_state.companionships_data[i]['missionaries'][j]
-                if 'name' in missionary_data:
-                    current_full_name = missionary_data['name']
-
-            # Parse the current name to extract title and name parts for the component
-            current_title = "Elder"
-            current_name = ""
-            if current_full_name != "Elder":  # Not the default empty value
-                parts = current_full_name.split(" ", 1)
-                if len(parts) >= 1:
-                    current_title = parts[0]
-                if len(parts) >= 2:
-                    current_name = parts[1]
+                current_title = missionary_data.get('title', current_title)
+                current_name = missionary_data.get('name', current_name)
+                current_photo = missionary_data.get('photo')
 
             # Use custom component for combined title and name input
-            full_name = missionary_input_field(
+            missionary_input_field(
                 label=f"Missionary {j + 1}",
                 default_title="Elder",
                 current_title=current_title,
@@ -149,8 +139,13 @@ def main():
                 key_prefix=f"missionary_{i}_{j}"
             )
 
+            title_key = f"missionary_{i}_{j}_title"
+            name_key = f"missionary_{i}_{j}_name"
+            selected_title = st.session_state.get(title_key, current_title) or "Elder"
+            selected_name = st.session_state.get(name_key, current_name) or ""
+
             # Process and save photo
-            photo_path = None
+            photo_path = current_photo
             if photo is not None:
                 # Convert to PIL Image and save temporarily
                 pil_image = Image.open(photo)
@@ -164,7 +159,8 @@ def main():
                 pil_image.save(photo_path, "PNG")
 
             missionaries_data.append({
-                'name': full_name,
+                'title': selected_title,
+                'name': selected_name.strip(),
                 'photo': photo_path
             })
 
@@ -221,6 +217,11 @@ def main():
     if st.button("🍽️ Generate Meal Planner", type="primary", width='stretch'):
         generate_meal_planner()
 
+    st.markdown("---")
+    if st.button("💾 Save Planner State", key="save_state_button"):
+        save_state_to_local_storage()
+        st.success("State saved to your browser storage.")
+
     # Display generated PDF if available
     if st.session_state.generated_pdf:
         st.subheader("📋 Generated Meal Planner")
@@ -261,9 +262,16 @@ def generate_meal_planner():
 
             # Process missionaries
             for missionary in comp_data['missionaries']:
+                title = missionary.get('title', 'Elder')
+                name = missionary.get('name', '')
+                if not isinstance(title, str) or not title:
+                    title = 'Elder'
+                if not isinstance(name, str):
+                    name = ''
+                display_name = f"{title} {name}".strip() if name else title
                 comp_missionary = {
-                    'name': missionary['name'] if missionary['name'] else f"Missionary {i+1}",
-                    'photo': missionary['photo']
+                    'name': display_name if display_name else f"Missionary {i+1}",
+                    'photo': missionary.get('photo')
                 }
                 companionship['missionaries'].append(comp_missionary)
 
@@ -349,6 +357,76 @@ def generate_meal_planner():
     except Exception as e:
         st.error(f"❌ Error generating meal planner: {str(e)}")
         print(f"Error: {e}")
+
+
+def split_full_name(value: str) -> tuple[str, str]:
+    """Split a formatted name into title and name components."""
+
+    if not value:
+        return "Elder", ""
+
+    trimmed = value.strip()
+    if not trimmed:
+        return "Elder", ""
+
+    parts = trimmed.split(" ", 1)
+    potential_title = parts[0]
+    if potential_title in {"Elder", "Sister"}:
+        title = potential_title
+        remainder = parts[1] if len(parts) > 1 else ""
+        return title, remainder.strip()
+
+    return "Elder", trimmed
+
+
+def normalize_session_state() -> None:
+    """Ensure session state data conforms to the current schema."""
+
+    companionships = st.session_state.get("companionships_data", [])
+    for companionship in companionships:
+        missionaries = companionship.get("missionaries", [])
+        if not isinstance(missionaries, list):
+            missionaries = []
+            companionship["missionaries"] = missionaries
+
+        for index, missionary in enumerate(missionaries):
+            if isinstance(missionary, dict):
+                if "title" not in missionary:
+                    full_name = missionary.get("name") if isinstance(missionary.get("name"), str) else ""
+                    title, name = split_full_name(full_name)
+                    missionary["title"] = title
+                    missionary["name"] = name
+                else:
+                    missionary["title"] = missionary.get("title") or "Elder"
+                    name_value = missionary.get("name")
+                    if not isinstance(name_value, str):
+                        missionary["name"] = ""
+                missionary.setdefault("photo", None)
+            else:
+                title, name = split_full_name(str(missionary))
+                missionaries[index] = {"title": title, "name": name, "photo": None}
+
+        companionship.setdefault("phone_number", "")
+        companionship.setdefault("schedule", [])
+
+
+def save_state_to_local_storage() -> None:
+    """Persist the current planner state into the browser's localStorage."""
+
+    app_state = AppState.from_session_state(st.session_state)
+    payload = app_state.to_storage_payload()
+    payload_json = json.dumps(payload)
+
+    st_components.html(
+        f"""
+        <script>
+        const storageKey = "{LOCAL_STORAGE_KEY}";
+        const payload = {payload_json};
+        window.localStorage.setItem(storageKey, JSON.stringify(payload));
+        </script>
+        """,
+        height=0,
+    )
 
 if __name__ == "__main__":
     main()
