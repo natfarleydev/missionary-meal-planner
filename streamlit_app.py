@@ -150,17 +150,17 @@ def main():
         key="start_date_input"
     )
 
-    # Calculate dates for the week
-    days_of_week = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    # Calculate dates for the week (starting on Monday)
+    days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     st.session_state.dates = {}
 
     # Find which day of the week the start_date is
     start_day_index = start_date.weekday()  # 0=Monday, 6=Sunday
-    days_since_sunday = (start_day_index + 1) % 7  # Convert to days since Sunday (0=Sunday, 6=Saturday)
+    days_since_monday = start_day_index  # 0=Monday, 6=Sunday
 
     for i, day in enumerate(days_of_week):
         # Calculate the date for this day of the week
-        days_to_add = (i - days_since_sunday) % 7
+        days_to_add = (i - days_since_monday) % 7
         day_date = start_date + timedelta(days=days_to_add)
         st.session_state.dates[day] = day_date
 
@@ -178,7 +178,7 @@ def main():
         st.subheader("📋 Generated Meal Planner")
 
         # Display the image
-        st.image(st.session_state.generated_image, use_column_width=True)
+        st.image(st.session_state.generated_image, use_container_width=True)
 
         # Download button
         st.download_button(
@@ -191,7 +191,7 @@ def main():
 
 def generate_meal_planner():
     """Generate the meal planner image using WeasyPrint"""
-    days_of_week = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
     try:
         # Prepare data for template - now we need companionships with phone numbers
