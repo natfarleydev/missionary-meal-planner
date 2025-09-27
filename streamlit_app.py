@@ -8,6 +8,7 @@ from PIL import Image
 import os
 import tempfile
 import uuid
+from components.missionary_input import missionary_input_field
 
 # Page configuration
 st.set_page_config(
@@ -64,7 +65,7 @@ def main():
         st.session_state.companionships_data = []
         for _ in range(num_companionships):
             st.session_state.companionships_data.append({
-                'missionaries': [{'name': '', 'photo': None} for _ in range(2)],
+                'missionaries': [{'name': 'Elder', 'photo': None} for _ in range(2)],
                 'phone_number': '',
                 'schedule': []
             })
@@ -86,19 +87,33 @@ def main():
                 help="Upload a clear photo of the missionary"
             )
 
-            # Name input
-            current_value = ""
+            # Combined title and name input
+            current_full_name = "Elder"
             if (i < len(st.session_state.companionships_data) and
                 'missionaries' in st.session_state.companionships_data[i] and
-                j < len(st.session_state.companionships_data[i]['missionaries']) and
-                'name' in st.session_state.companionships_data[i]['missionaries'][j]):
-                current_value = st.session_state.companionships_data[i]['missionaries'][j]['name']
+                j < len(st.session_state.companionships_data[i]['missionaries'])):
 
-            name = st.text_input(
-                f"Name of Missionary {j + 1}",
-                value=current_value,
-                key=f"name_{i}_{j}",
-                placeholder="Enter missionary name"
+                missionary_data = st.session_state.companionships_data[i]['missionaries'][j]
+                if 'name' in missionary_data:
+                    current_full_name = missionary_data['name']
+
+            # Parse the current name to extract title and name parts for the component
+            current_title = "Elder"
+            current_name = ""
+            if current_full_name != "Elder":  # Not the default empty value
+                parts = current_full_name.split(" ", 1)
+                if len(parts) >= 1:
+                    current_title = parts[0]
+                if len(parts) >= 2:
+                    current_name = parts[1]
+
+            # Use custom component for combined title and name input
+            full_name = missionary_input_field(
+                label=f"Missionary {j + 1}",
+                default_title="Elder",
+                current_title=current_title,
+                current_name=current_name,
+                key_prefix=f"missionary_{i}_{j}"
             )
 
             # Process and save photo
@@ -116,7 +131,7 @@ def main():
                 pil_image.save(photo_path, "PNG")
 
             missionaries_data.append({
-                'name': name,
+                'name': full_name,
                 'photo': photo_path
             })
 
