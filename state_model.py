@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import date
 from typing import Any, Dict, List, Mapping, Optional
 
 from pydantic import BaseModel, Field
@@ -40,7 +39,6 @@ class AppState(BaseModel):
     num_companionships: int = DEFAULT_COMPANIONSHIP_COUNT
     companionships_data: List[Companionship] = Field(default_factory=list)
     missionary_counts: Dict[int, int] = Field(default_factory=dict)
-    dates: Dict[str, date] = Field(default_factory=dict)
     generated_pdf: Optional[bytes] = None
 
     @classmethod
@@ -65,7 +63,6 @@ class AppState(BaseModel):
             "num_companionships": session_state.get("num_companionships", DEFAULT_COMPANIONSHIP_COUNT),
             "companionships_data": session_state.get("companionships_data", []),
             "missionary_counts": session_state.get("missionary_counts", {}),
-            "dates": session_state.get("dates", {}),
             "generated_pdf": session_state.get("generated_pdf"),
         }
         return cls.model_validate(payload)
@@ -75,10 +72,6 @@ class AppState(BaseModel):
 
         storage_copy = self.model_copy(update={"generated_pdf": None}, deep=True)
         payload = storage_copy.model_dump()
-        payload["dates"] = {
-            key: value.isoformat() if isinstance(value, date) else value
-            for key, value in payload["dates"].items()
-        }
         payload["missionary_counts"] = {
             str(key): value for key, value in payload["missionary_counts"].items()
         }

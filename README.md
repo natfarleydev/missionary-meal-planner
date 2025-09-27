@@ -1,13 +1,12 @@
 # Missionary Meal Planner
 
-A Streamlit application for creating visual meal planner schedules for missionary companionships. This app allows you to input missionary information, photos, and dates to generate a professional-looking meal planner image.
+A Streamlit application for creating visual meal planner schedules for missionary companionships. This app allows you to input missionary information and photos to generate a professional-looking meal planner image.
 
 ## Features
 
 - **Multiple Companionships**: Support for 1-10 missionary companionships
 - **Photo Integration**: Upload photos for each missionary
 - **Phone Numbers**: Add phone numbers for each companionship
-- **Date Management**: Set dates for each day of the week
 - **Table Format**: Clean table layout with lines for manual entry
 - **Professional Output**: Generates a styled image using WeasyPrint
 - **Easy Download**: Download the generated planner as a PNG image
@@ -69,9 +68,8 @@ brew install poppler
    - Upload photos for each missionary
    - Enter names for each missionary
    - Add phone numbers for each companionship
-3. **Set Dates**: Enter dates for each day of the week
-4. **Generate**: Click "Generate Meal Planner" to create the image
-5. **Download**: Download the generated image as a PNG file
+3. **Generate**: Click "Generate Meal Planner" to create the image
+4. **Download**: Download the generated image as a PNG file
 
 ## Project Structure
 
@@ -93,7 +91,6 @@ missionary-meal-planner/
 - **jinja2**: HTML templating
 - **pdf2image**: PDF to image conversion
 - **reportlab**: Fallback PDF generation
-- **python-dateutil**: Date utilities
 
 ## Troubleshooting
 

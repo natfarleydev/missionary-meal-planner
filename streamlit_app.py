@@ -1,8 +1,6 @@
 import json
 import streamlit as st
-from datetime import datetime, timedelta
 import base64
-from io import BytesIO
 from jinja2 import Template
 from weasyprint import HTML, CSS
 from PIL import Image
@@ -60,8 +58,7 @@ def main():
         1. Set the number of companionships
         2. For each companionship, set the number of missionaries (2 or 3)
         3. Upload photos and enter names for each missionary
-        4. Enter dates for each day of the week
-        5. Click 'Generate Meal Planner' to create the image
+        4. Click 'Generate Meal Planner' to create the image
         """)
 
     # Main content
@@ -182,37 +179,6 @@ def main():
             st.session_state.companionships_data[i]['missionaries'] = missionaries_data
             st.session_state.companionships_data[i]['phone_number'] = phone_number
 
-    # Date inputs section
-    st.subheader("📅 Weekly Schedule")
-
-    st.markdown("Enter the starting date for the week:")
-
-    # Get the starting date
-    start_date = st.date_input(
-        "Starting Date",
-        value=st.session_state.dates.get('start_date', datetime.now().date()),
-        key="start_date_input"
-    )
-
-    # Calculate dates for the week (starting on Monday)
-    days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    st.session_state.dates = {}
-
-    # Find which day of the week the start_date is
-    start_day_index = start_date.weekday()  # 0=Monday, 6=Sunday
-    days_since_monday = start_day_index  # 0=Monday, 6=Sunday
-
-    for i, day in enumerate(days_of_week):
-        # Calculate the date for this day of the week
-        days_to_add = (i - days_since_monday) % 7
-        day_date = start_date + timedelta(days=days_to_add)
-        st.session_state.dates[day] = day_date
-
-    # Display the calculated dates
-    st.markdown("**Week dates:**")
-    for day in days_of_week:
-        st.markdown(f"- **{day}:** {st.session_state.dates[day].strftime('%B %d, %Y')}")
-
     # Generate button
     if st.button("🍽️ Generate Meal Planner", type="primary", width='stretch'):
         generate_meal_planner()
@@ -248,7 +214,6 @@ def main():
 
 def generate_meal_planner():
     """Generate the meal planner image using WeasyPrint"""
-    days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
     try:
         # Prepare data for template - now we need companionships with phone numbers
