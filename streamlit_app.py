@@ -307,21 +307,23 @@ def generate_meal_planner():
         css_string = """
         @page {
             size: A4 landscape;
-            margin: 0.5in;
+            margin: 0.35in;
         }
         @media print {
             body {
                 margin: 0;
-                padding: 20px;
+                padding: 12px;
             }
             table {
                 page-break-inside: avoid;
             }
             .header h1 {
-                margin-bottom: 5px;
+                margin-bottom: 4px;
+                font-size: 2.1em;
             }
             .header-subtitle {
-                margin-bottom: 10px;
+                margin-bottom: 6px;
+                font-size: 1em;
             }
         }
         """

@@ -8,21 +8,21 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 1cm;
+            padding: 0.7cm;
             background-color: white;
         }
         .header {
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
         .header h1 {
-            font-size: 2.5em;
-            margin: 0 0 10px 0;
+            font-size: 2.1em;
+            margin: 0 0 6px 0;
             color: #333;
             font-weight: bold;
         }
         .header-subtitle {
-            font-size: 1.1em;
+            font-size: 1em;
             color: #666;
             margin: 0;
         }
@@ -30,19 +30,19 @@
             width: 100%;
             border-collapse: collapse;
             margin: 0;
-            font-size: 14px;
+            font-size: 13px;
             height: auto;
         }
         th, td {
             border: 1px solid black;
-            padding: 8px;
+            padding: 6px;
             text-align: center;
             vertical-align: top;
         }
         th {
             background-color: #f0f0f0;
             font-weight: bold;
-            min-height: 50px;
+            min-height: 44px;
         }
         .companionship-cell {
             width: 200px;
@@ -51,7 +51,7 @@
             vertical-align: top;
         }
         .missionary-row {
-            min-height: 120px;
+            min-height: 105px;
         }
         .companionship-info {
             display: flex;
@@ -64,15 +64,15 @@
             gap: 8px;
         }
         .missionary-photo {
-            width: 35px;
-            height: 35px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             object-fit: cover;
             border: 1px solid #ccc;
         }
         .no-photo {
-            width: 35px;
-            height: 35px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             background-color: #f0f0f0;
             border: 1px solid #ccc;
@@ -88,7 +88,7 @@
         }
         .missionary-name {
             font-weight: bold;
-            font-size: 12px;
+            font-size: 11px;
             margin: 0;
         }
         .phone-number {
@@ -98,8 +98,8 @@
             text-align: center;
         }
         .day-cell {
-            min-height: 120px;
-            padding: 8px;
+            min-height: 105px;
+            padding: 6px;
         }
         .day-content {
             height: 100%;
@@ -109,9 +109,21 @@
         }
         .footer {
             text-align: center;
-            margin-top: 10px;
+            margin-top: 6px;
             font-size: 12px;
             color: #666;
+        }
+        @page {
+            size: A4 landscape;
+            margin: 0.35in;
+        }
+        @media print {
+            body {
+                padding: 12px;
+            }
+            table {
+                page-break-inside: avoid;
+            }
         }
     </style>
 </head>
