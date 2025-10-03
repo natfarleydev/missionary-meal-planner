@@ -1,12 +1,37 @@
 import streamlit as st
+import structlog
+
 from state_model import (
     AppState,
 )
 
 from generate_pdf import generate_meal_planner_pdf, pdf_bytes_to_base64
 
+from local_storage import (
+    get_app_state_from_local_storage,
+    save_app_state_to_local_storage,
+)
 
+log = structlog.get_logger()
+
+
+# Config stuff
 st.session_state["#enable_photo_upload"] = st.session_state.get("#enable_photo_upload", False)
+st.session_state["#should_fetch_from_local_storage"] = st.session_state.get("#should_fetch_from_local_storage", True)
+if st.session_state["#should_fetch_from_local_storage"] and (local_storage_data := get_app_state_from_local_storage()) is not None:
+    # this is a one time check, so we indicate that we've done it
+    st.session_state["#should_fetch_from_local_storage"] = False
+    # OK, here we check if the session state is empty, if so, we create a default state
+    log.info("Found data in local storage", local_storage_data=local_storage_data)
+    for key, value in local_storage_data.to_session_state().items():
+        log.info("Setting session state", key=key, value=value)
+        st.session_state[key] = value
+
+default_state = AppState.create_default()
+for key, value in default_state.to_session_state().items():
+    if key not in st.session_state:
+        st.session_state[key] = value
+
 
 # Page configuration
 st.set_page_config(
@@ -141,11 +166,14 @@ def main():
 
 def generate_meal_planner():
     """Generate the meal planner image using WeasyPrint"""
+    
 
     try:
         app_state = AppState.from_session_state(
             {k: v for k, v in st.session_state.items() if k.startswith("/")}
         )
+        
+        save_app_state_to_local_storage(app_state)
 
         pdf_data: bytes = generate_meal_planner_pdf(app_state)
         st.session_state["#generated_pdf_bytes"] = pdf_data
