@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Mapping, Optional
 
 from pydantic import BaseModel, Field
 
+from utils import flatten_to_json_pointers, unflatten_from_json_pointers
+
 DEFAULT_COMPANIONSHIP_COUNT = 4
 DEFAULT_MISSIONARIES_PER_COMPANIONSHIP = 2
 
@@ -21,7 +23,7 @@ class Missionary(BaseModel):
 
     title: str = "Elder"
     name: str = ""
-    photo: Optional[str] = None
+    photo: str | None = None
 
 
 class Companionship(BaseModel):
@@ -36,9 +38,9 @@ class AppState(BaseModel):
     """Top-level representation of the Streamlit session state."""
 
     num_companionships: int = DEFAULT_COMPANIONSHIP_COUNT
-    companionships_data: List[Companionship] = Field(default_factory=list)
-    missionary_counts: Dict[int, int] = Field(default_factory=dict)
-    generated_pdf: Optional[bytes] = None
+    companionships_data: list[Companionship] = Field(default_factory=list)
+    missionary_counts: list[int] = Field(default_factory=lambda: [2 for _ in range(4)])
+    generated_pdf: str = ""
 
     @classmethod
     def create_default(cls) -> "AppState":
@@ -50,20 +52,13 @@ class AppState(BaseModel):
     def to_session_state(self) -> Dict[str, Any]:
         """Convert the model into a structure suitable for ``st.session_state``."""
 
-        payload = self.model_dump()
-        payload["companionships_data"] = [item.model_dump() for item in self.companionships_data]
-        return payload
+        return flatten_to_json_pointers(self.model_dump(exclude_none=False))
 
     @classmethod
     def from_session_state(cls, session_state: Mapping[str, Any]) -> "AppState":
         """Build an ``AppState`` instance from an existing ``st.session_state`` mapping."""
 
-        payload: Dict[str, Any] = {
-            "num_companionships": session_state.get("num_companionships", DEFAULT_COMPANIONSHIP_COUNT),
-            "companionships_data": session_state.get("companionships_data", []),
-            "missionary_counts": session_state.get("missionary_counts", {}),
-            "generated_pdf": session_state.get("generated_pdf"),
-        }
+        payload: Dict[str, Any] = unflatten_from_json_pointers(session_state)
         return cls.model_validate(payload)
 
 def create_companionship(missionary_count: int) -> Companionship:

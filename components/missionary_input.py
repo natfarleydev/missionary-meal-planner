@@ -30,7 +30,7 @@ class MissionaryInputField:
                 options=title_options,
                 selection_mode="single",
                 default=self.current_title,
-                key=f"{self.key_prefix}_title",
+                key=f"{self.key_prefix}/title",
                 label_visibility="collapsed"
             )
 
@@ -39,7 +39,7 @@ class MissionaryInputField:
             name = st.text_input(
                 f"{self.label} Name",
                 value=self.current_name,
-                key=f"{self.key_prefix}_name",
+                key=f"{self.key_prefix}/name",
                 label_visibility="collapsed",
                 placeholder="Enter missionary name"
             )
