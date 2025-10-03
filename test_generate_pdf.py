@@ -4,8 +4,8 @@ import base64
 
 import pytest
 
-from state_model import AppState, Companionship, Missionary
 from generate_pdf import generate_meal_planner_pdf, pdf_bytes_to_base64
+from state_model import AppState, Companionship, Missionary
 
 
 class TestGenerateMealPlannerPdf:
@@ -63,4 +63,3 @@ class TestPdfBytesToBase64:
 
         with pytest.raises(TypeError):
             pdf_bytes_to_base64("not-bytes")
-

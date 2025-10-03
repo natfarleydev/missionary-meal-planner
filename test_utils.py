@@ -1,8 +1,5 @@
 """Pytest tests for utility functions."""
 
-import pytest
-
-from state_model import AppState, Companionship, Missionary
 from utils import flatten_to_json_pointers, unflatten_from_json_pointers
 
 
@@ -20,14 +17,8 @@ class TestFlattenToJsonPointers:
     def test_flatten_nested_dict(self):
         """Test flattening a nested dictionary."""
         data = {
-            "person": {
-                "name": "John",
-                "details": {
-                    "age": 25,
-                    "city": "Boston"
-                }
-            },
-            "active": True
+            "person": {"name": "John", "details": {"age": 25, "city": "Boston"}},
+            "active": True,
         }
         result = flatten_to_json_pointers(data)
 
@@ -35,29 +26,7 @@ class TestFlattenToJsonPointers:
             "/person/name": "John",
             "/person/details/age": 25,
             "/person/details/city": "Boston",
-            "/active": True
-        }
-        assert result == expected
-
-    def test_flatten_nested_dict(self):
-        """Test flattening a nested dictionary."""
-        data = {
-            "person": {
-                "name": "John",
-                "details": {
-                    "age": 25,
-                    "city": "Boston"
-                }
-            },
-            "active": True
-        }
-        result = flatten_to_json_pointers(data)
-
-        expected = {
-            "/person/name": "John",
-            "/person/details/age": 25,
-            "/person/details/city": "Boston",
-            "/active": True
+            "/active": True,
         }
         assert result == expected
 
@@ -66,7 +35,7 @@ class TestFlattenToJsonPointers:
         data = {
             "name": "John",
             "hobbies": ["reading", "coding", "gaming"],
-            "scores": [95, 87, 92]
+            "scores": [95, 87, 92],
         }
         result = flatten_to_json_pointers(data)
 
@@ -77,7 +46,7 @@ class TestFlattenToJsonPointers:
             "/hobbies/2": "gaming",
             "/scores/0": 95,
             "/scores/1": 87,
-            "/scores/2": 92
+            "/scores/2": 92,
         }
         assert result == expected
 
@@ -86,12 +55,7 @@ class TestFlattenToJsonPointers:
         data = [1, 2, {"nested": True, "value": 42}]
         result = flatten_to_json_pointers(data)
 
-        expected = {
-            "/0": 1,
-            "/1": 2,
-            "/2/nested": True,
-            "/2/value": 42
-        }
+        expected = {"/0": 1, "/1": 2, "/2/nested": True, "/2/value": 42}
         assert result == expected
 
     def test_flatten_empty_structures(self):
@@ -111,14 +75,14 @@ class TestFlattenToJsonPointers:
         data = {
             "key~with~tildes": "value1",
             "key/with/slashes": "value2",
-            "normal_key": "value3"
+            "normal_key": "value3",
         }
         result = flatten_to_json_pointers(data)
 
         expected = {
             "/key~0with~0tildes": "value1",
             "/key~1with~1slashes": "value2",
-            "/normal_key": "value3"
+            "/normal_key": "value3",
         }
         assert result == expected
 
@@ -127,15 +91,12 @@ class TestFlattenToJsonPointers:
         data = {
             "users": [
                 {"name": "Alice", "active": True},
-                {"name": "Bob", "active": False}
+                {"name": "Bob", "active": False},
             ],
             "settings": {
                 "theme": "dark",
-                "notifications": {
-                    "email": True,
-                    "push": False
-                }
-            }
+                "notifications": {"email": True, "push": False},
+            },
         }
         result = flatten_to_json_pointers(data)
 
@@ -146,7 +107,7 @@ class TestFlattenToJsonPointers:
             "/users/1/active": False,
             "/settings/theme": "dark",
             "/settings/notifications/email": True,
-            "/settings/notifications/push": False
+            "/settings/notifications/push": False,
         }
         assert result == expected
 
@@ -155,10 +116,7 @@ class TestFlattenToJsonPointers:
         data = {
             "name": "John",
             "nickname": None,
-            "details": {
-                "age": 25,
-                "description": None
-            }
+            "details": {"age": 25, "description": None},
         }
         result = flatten_to_json_pointers(data)
 
@@ -166,27 +124,20 @@ class TestFlattenToJsonPointers:
             "/name": "John",
             "/nickname": None,
             "/details/age": 25,
-            "/details/description": None
+            "/details/description": None,
         }
         assert result == expected
 
     def test_flatten_numeric_keys(self):
         """Test flattening with numeric dictionary keys."""
-        data = {
-            "0": "zero",
-            "1": "one",
-            "items": {
-                "0": "first",
-                "1": "second"
-            }
-        }
+        data = {"0": "zero", "1": "one", "items": {"0": "first", "1": "second"}}
         result = flatten_to_json_pointers(data)
 
         expected = {
             "/0": "zero",
             "/1": "one",
             "/items/0": "first",
-            "/items/1": "second"
+            "/items/1": "second",
         }
         assert result == expected
 
@@ -211,18 +162,10 @@ class TestUnflattenFromJsonPointers:
 
     def test_unflatten_simple_dict(self):
         """Test unflattening a simple flat dict back to nested dict."""
-        flat_data = {
-            "/name": "John",
-            "/age": 25,
-            "/active": True
-        }
+        flat_data = {"/name": "John", "/age": 25, "/active": True}
         result = unflatten_from_json_pointers(flat_data)
 
-        expected = {
-            "name": "John",
-            "age": 25,
-            "active": True
-        }
+        expected = {"name": "John", "age": 25, "active": True}
         assert result == expected
 
     def test_unflatten_nested_dict(self):
@@ -231,19 +174,13 @@ class TestUnflattenFromJsonPointers:
             "/person/name": "John",
             "/person/details/age": 25,
             "/person/details/city": "Boston",
-            "/active": True
+            "/active": True,
         }
         result = unflatten_from_json_pointers(flat_data)
 
         expected = {
-            "person": {
-                "name": "John",
-                "details": {
-                    "age": 25,
-                    "city": "Boston"
-                }
-            },
-            "active": True
+            "person": {"name": "John", "details": {"age": 25, "city": "Boston"}},
+            "active": True,
         }
         assert result == expected
 
@@ -256,24 +193,20 @@ class TestUnflattenFromJsonPointers:
             "/hobbies/2": "gaming",
             "/scores/0": 95,
             "/scores/1": 87,
-            "/scores/2": 92
+            "/scores/2": 92,
         }
         result = unflatten_from_json_pointers(flat_data)
 
         expected = {
             "name": "John",
             "hobbies": ["reading", "coding", "gaming"],
-            "scores": [95, 87, 92]
+            "scores": [95, 87, 92],
         }
         assert result == expected
 
     def test_unflatten_list_only(self):
         """Test unflattening a list structure."""
-        flat_data = {
-            "/0": 1,
-            "/1": 2,
-            "/2": 3
-        }
+        flat_data = {"/0": 1, "/1": 2, "/2": 3}
         result = unflatten_from_json_pointers(flat_data)
 
         expected = [1, 2, 3]
@@ -286,14 +219,14 @@ class TestUnflattenFromJsonPointers:
             "/0/active": True,
             "/1/name": "Bob",
             "/1/active": False,
-            "/2/setting/enabled": True
+            "/2/setting/enabled": True,
         }
         result = unflatten_from_json_pointers(flat_data)
 
         expected = [
             {"name": "Alice", "active": True},
             {"name": "Bob", "active": False},
-            {"setting": {"enabled": True}}
+            {"setting": {"enabled": True}},
         ]
         assert result == expected
 
@@ -310,14 +243,14 @@ class TestUnflattenFromJsonPointers:
         flat_data = {
             "/key~0with~0tildes": "value1",
             "/key~1with~1slashes": "value2",
-            "/normal_key": "value3"
+            "/normal_key": "value3",
         }
         result = unflatten_from_json_pointers(flat_data)
 
         expected = {
             "key~with~tildes": "value1",
             "key/with/slashes": "value2",
-            "normal_key": "value3"
+            "normal_key": "value3",
         }
         assert result == expected
 
@@ -333,26 +266,20 @@ class TestUnflattenFromJsonPointers:
             "/settings/notifications/push": False,
             "/metadata/version": "1.0",
             "/metadata/features/0": "feature1",
-            "/metadata/features/1": "feature2"
+            "/metadata/features/1": "feature2",
         }
         result = unflatten_from_json_pointers(flat_data)
 
         expected = {
             "users": [
                 {"name": "Alice", "active": True},
-                {"name": "Bob", "active": False}
+                {"name": "Bob", "active": False},
             ],
             "settings": {
                 "theme": "dark",
-                "notifications": {
-                    "email": True,
-                    "push": False
-                }
+                "notifications": {"email": True, "push": False},
             },
-            "metadata": {
-                "version": "1.0",
-                "features": ["feature1", "feature2"]
-            }
+            "metadata": {"version": "1.0", "features": ["feature1", "feature2"]},
         }
         assert result == expected
 
@@ -362,17 +289,14 @@ class TestUnflattenFromJsonPointers:
             "/name": "John",
             "/nickname": None,
             "/details/age": 25,
-            "/details/description": None
+            "/details/description": None,
         }
         result = unflatten_from_json_pointers(flat_data)
 
         expected = {
             "name": "John",
             "nickname": None,
-            "details": {
-                "age": 25,
-                "description": None
-            }
+            "details": {"age": 25, "description": None},
         }
         assert result == expected
 
@@ -382,15 +306,11 @@ class TestUnflattenFromJsonPointers:
             "/0": "zero",
             "/1": "one",
             "/items/0": "first",
-            "/items/1": "second"
+            "/items/1": "second",
         }
         result = unflatten_from_json_pointers(flat_data)
 
-        expected = {
-            "0": "zero",
-            "1": "one",
-            "items": ["first", "second"]
-        }
+        expected = {"0": "zero", "1": "one", "items": ["first", "second"]}
         assert result == expected
 
     def test_roundtrip_flatten_unflatten(self):
@@ -398,11 +318,8 @@ class TestUnflattenFromJsonPointers:
         # Test with dict
         original_dict = {
             "name": "John",
-            "details": {
-                "age": 25,
-                "hobbies": ["reading", "coding"]
-            },
-            "active": True
+            "details": {"age": 25, "hobbies": ["reading", "coding"]},
+            "active": True,
         }
 
         flattened = flatten_to_json_pointers(original_dict)

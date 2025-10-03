@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Union
+from typing import Any
 
 
-def flatten_to_json_pointers(data: Union[Dict[str, Any], List[Any]], parent_path: str = "/") -> Dict[str, Any]:
+def flatten_to_json_pointers(
+    data: dict[str, Any] | list[Any], parent_path: str = "/"
+) -> dict[str, Any]:
     """
     Flatten a nested dict or list into a flat dictionary with JSON pointer keys.
 
@@ -28,7 +30,7 @@ def flatten_to_json_pointers(data: Union[Dict[str, Any], List[Any]], parent_path
         >>> flatten_to_json_pointers([1, 2, {"nested": True}])
         {'/0': 1, '/1': 2, '/2/nested': True}
     """
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
 
     if isinstance(data, dict):
         for key, value in data.items():
@@ -36,7 +38,7 @@ def flatten_to_json_pointers(data: Union[Dict[str, Any], List[Any]], parent_path
             escaped_key = str(key).replace("~", "~0").replace("/", "~1")
             current_path = f"{parent_path}{escaped_key}"
 
-            if isinstance(value, (dict, list)):
+            if isinstance(value, dict | list):
                 # Recursively flatten nested structures
                 nested_result = flatten_to_json_pointers(value, f"{current_path}/")
                 result.update(nested_result)
@@ -48,7 +50,7 @@ def flatten_to_json_pointers(data: Union[Dict[str, Any], List[Any]], parent_path
         for index, item in enumerate(data):
             current_path = f"{parent_path}{index}"
 
-            if isinstance(item, (dict, list)):
+            if isinstance(item, dict | list):
                 # Recursively flatten nested structures
                 nested_result = flatten_to_json_pointers(item, f"{current_path}/")
                 result.update(nested_result)
@@ -59,7 +61,9 @@ def flatten_to_json_pointers(data: Union[Dict[str, Any], List[Any]], parent_path
     return result
 
 
-def unflatten_from_json_pointers(flat_dict: Dict[str, Any]) -> Union[Dict[str, Any], List[Any]]:
+def unflatten_from_json_pointers(
+    flat_dict: dict[str, Any],
+) -> dict[str, Any] | list[Any]:
     """
     Reconstruct a nested dict or list from a flat dictionary with JSON pointer keys.
 
@@ -93,7 +97,7 @@ def unflatten_from_json_pointers(flat_dict: Dict[str, Any]) -> Union[Dict[str, A
     root_paths = {}
     max_depth = 0
 
-    for pointer in flat_dict.keys():
+    for pointer in flat_dict:
         # Parse the JSON pointer path
         path_parts = _parse_json_pointer(pointer)
         root_paths[pointer] = path_parts
@@ -126,12 +130,15 @@ def unflatten_from_json_pointers(flat_dict: Dict[str, Any]) -> Union[Dict[str, A
                     if not remaining_path:
                         # Direct value at this index
                         result[index] = flat_dict[pointer]
+                    # Nested structure at this index
+                    elif result[index] is None:
+                        result[index] = _create_nested_structure(
+                            remaining_path, flat_dict[pointer]
+                        )
                     else:
-                        # Nested structure at this index
-                        if result[index] is None:
-                            result[index] = _create_nested_structure(remaining_path, flat_dict[pointer])
-                        else:
-                            _set_nested_value(result[index], remaining_path, flat_dict[pointer])
+                        _set_nested_value(
+                            result[index], remaining_path, flat_dict[pointer]
+                        )
 
             return result
     except (ValueError, AttributeError):
@@ -145,13 +152,12 @@ def unflatten_from_json_pointers(flat_dict: Dict[str, Any]) -> Union[Dict[str, A
         if not path_parts:
             # Root level value - this represents the entire structure
             return value
-        else:
-            _set_nested_value(result, path_parts, value)
+        _set_nested_value(result, path_parts, value)
 
     return result
 
 
-def _parse_json_pointer(pointer: str) -> List[str]:
+def _parse_json_pointer(pointer: str) -> list[str]:
     """
     Parse a JSON pointer into its component parts.
 
@@ -180,7 +186,9 @@ def _parse_json_pointer(pointer: str) -> List[str]:
     return parts
 
 
-def _create_nested_structure(path_parts: List[str], value: Any) -> Union[Dict[str, Any], List[Any]]:
+def _create_nested_structure(
+    path_parts: list[str], value: Any
+) -> dict[str, Any] | list[Any]:
     """
     Create a nested structure for the given path.
 
@@ -203,20 +211,19 @@ def _create_nested_structure(path_parts: List[str], value: Any) -> Union[Dict[st
         if not remaining_parts:
             # End of path - create list with this single value
             return [value] if index == 0 else [None] * index + [value]
-        else:
-            # Nested structure - create list and recurse
-            result = [None] * (index + 1) if index > 0 else [None]
-            result[index] = _create_nested_structure(remaining_parts, value)
-            return result
-    else:
-        # Dictionary structure
-        if not remaining_parts:
-            return {first_part: value}
-        else:
-            return {first_part: _create_nested_structure(remaining_parts, value)}
+        # Nested structure - create list and recurse
+        result = [None] * (index + 1) if index > 0 else [None]
+        result[index] = _create_nested_structure(remaining_parts, value)
+        return result
+    # Dictionary structure
+    if not remaining_parts:
+        return {first_part: value}
+    return {first_part: _create_nested_structure(remaining_parts, value)}
 
 
-def _set_nested_value(obj: Union[Dict[str, Any], List[Any]], path_parts: List[str], value: Any) -> None:
+def _set_nested_value(
+    obj: dict[str, Any] | list[Any], path_parts: list[str], value: Any
+) -> None:
     """
     Set a value in a nested structure following the given path.
 
@@ -237,7 +244,9 @@ def _set_nested_value(obj: Union[Dict[str, Any], List[Any]], path_parts: List[st
             index = int(first_part)
             # Extend list if necessary
             while len(obj) <= index:
-                obj.append({} if remaining_parts and not remaining_parts[0].isdigit() else [])
+                obj.append(
+                    {} if remaining_parts and not remaining_parts[0].isdigit() else []
+                )
 
             if not remaining_parts:
                 obj[index] = value
@@ -248,7 +257,9 @@ def _set_nested_value(obj: Union[Dict[str, Any], List[Any]], path_parts: List[st
     else:
         # For dicts, first part is a key
         if first_part not in obj:
-            obj[first_part] = {} if remaining_parts and not remaining_parts[0].isdigit() else []
+            obj[first_part] = (
+                {} if remaining_parts and not remaining_parts[0].isdigit() else []
+            )
 
         if not remaining_parts:
             obj[first_part] = value

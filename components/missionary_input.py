@@ -1,7 +1,15 @@
 import streamlit as st
 
+
 class MissionaryInputField:
-    def __init__(self, label, default_title="Elder", current_title="Elder", current_name="", key_prefix="missionary"):
+    def __init__(
+        self,
+        label,
+        default_title="Elder",
+        current_title="Elder",
+        current_name="",
+        key_prefix="missionary",
+    ):
         self.label = label
         self.default_title = default_title
         self.current_title = current_title
@@ -10,14 +18,17 @@ class MissionaryInputField:
 
     def render(self):
         """Render the missionary input field with segmented control for title"""
-        st.markdown(f"""
+        st.markdown(
+            """
         <div style="
             margin: 10px 0;
             padding: 15px;
             border: 1px solid #ddd;
             border-radius: 8px;
             background-color: #f9f9f9;
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
 
         # Create columns for side-by-side layout
         col1, col2 = st.columns([1, 3])  # 1:3 ratio for dropdown vs text input
@@ -31,7 +42,7 @@ class MissionaryInputField:
                 selection_mode="single",
                 default=self.current_title,
                 key=f"{self.key_prefix}/title",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
             )
 
         with col2:
@@ -41,7 +52,7 @@ class MissionaryInputField:
                 value=self.current_name,
                 key=f"{self.key_prefix}/name",
                 label_visibility="collapsed",
-                placeholder="Enter missionary name"
+                placeholder="Enter missionary name",
             )
 
         st.markdown("</div>", unsafe_allow_html=True)
@@ -49,12 +60,18 @@ class MissionaryInputField:
         # Return the combined full name
         if title and name:
             return f"{title} {name}"
-        elif title:
+        if title:
             return title
-        else:
-            return self.default_title
+        return self.default_title
 
-def missionary_input_field(label="Missionary", default_title="Elder", current_title="Elder", current_name="", key_prefix="missionary"):
+
+def missionary_input_field(
+    label="Missionary",
+    default_title="Elder",
+    current_title="Elder",
+    current_name="",
+    key_prefix="missionary",
+):
     """
     Convenience function to create and render a missionary input field
 
@@ -73,6 +90,6 @@ def missionary_input_field(label="Missionary", default_title="Elder", current_ti
         default_title=default_title,
         current_title=current_title,
         current_name=current_name,
-        key_prefix=key_prefix
+        key_prefix=key_prefix,
     )
     return field.render()

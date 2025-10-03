@@ -29,7 +29,105 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["."]
 
+[tool.ruff]
+# Enable all the bells and whistles!
+target-version = "py312"
+line-length = 88  # Slightly more generous than default 79
+
+[tool.ruff.lint]
+# Enable all rule categories by default
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "I",   # isort
+    "N",   # pep8-naming
+    "C4",  # flake8-comprehensions
+    "PIE", # flake8-pie
+    "T20", # flake8-print
+    "PYI", # flake8-pyi
+    "PT",  # flake8-pytest-style
+    "Q",   # flake8-quotes
+    "RSE", # flake8-raise
+    "RET", # flake8-return
+    "SLF", # flake8-self
+    "SLOT", # flake8-slots
+    "TCH", # flake8-type-checking
+    "TID", # flake8-tidy-imports
+    "INT", # flake8-gettext
+    "ARG", # flake8-unused-arguments
+    "PTH", # flake8-use-pathlib
+    "TD",  # flake8-todos
+    "FIX", # flake8-fixme
+    "ERA", # eradicate
+    "PD",  # pandas-vet
+    "PGH", # pygrep-hooks
+    "PL",  # Pylint
+    "TRY", # tryceratops
+    "FLY", # flynt
+    "NPY", # NumPy specific rules
+    "AIR", # Airflow
+    "PERF", # Perflint
+    "FURB", # refurb
+    "LOG", # flake8-logging
+    "RUF", # Ruff-specific rules
+]
+
+# But ignore some that might be too strict for existing code
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+    "E731",  # Do not assign a lambda expression, use a def
+    "PLR0913", # Too many arguments to function call
+    "PLR0912", # Too many branches
+    "PLR0915", # Too many statements
+    "PLR2004", # Magic value comparison
+    "SIM108",  # Use ternary operator (can be less readable)
+    "FBT001",  # Boolean default positional argument
+    "FBT002",  # Boolean default positional argument
+    "FBT003",  # Boolean default positional argument
+    "S101",   # Use of assert (common in tests)
+    "PD",     # Pandas-related rules (not using pandas)
+    "NPY",    # NumPy rules (not using numpy)
+    "AIR",    # Airflow rules (not using airflow)
+    "TD002",  # Missing author in TODO
+    "TD003",  # Missing issue link in TODO
+    "FIX002", # Line contains TODO
+    "TRY003", # Error messages are meaningful for debugging
+]
+
+# Configure autofix behavior
+fixable = ["ALL"]
+unfixable = [
+    "ERA001", # Found commented-out code (don't auto-remove)
+    "F401",   # Module imported but unused (manual review needed)
+    "F841",   # Local variable is assigned to but never used (manual review needed)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["missionary_meal_planner", "components", "utils", "state_model"]
+
+[tool.ruff.lint.per-file-ignores]
+"test_*.py" = [
+    "PLR0913", # Tests often need many arguments
+    "PLR0912", # Tests often have many branches
+    "PLR0915", # Tests often have many statements
+    "S101",    # Tests use assert
+    "PT013",   # Found incorrect import of pytest, should be `import pytest` (but we use it correctly)
+]
+"__init__.py" = ["F401"] # These files often have unused imports for re-export
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
 [tool.uv]
 dev-dependencies = [
+    "pre-commit>=4.3.0",
     "pytest>=7.0.0",
+    "ruff>=0.13.3",
 ]

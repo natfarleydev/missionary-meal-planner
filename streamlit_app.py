@@ -1,24 +1,29 @@
 import streamlit as st
 import structlog
 
-from state_model import (
-    AppState,
-)
-
 from generate_pdf import generate_meal_planner_pdf, pdf_bytes_to_base64
-
 from local_storage import (
     get_app_state_from_local_storage,
     save_app_state_to_local_storage,
+)
+from state_model import (
+    AppState,
 )
 
 log = structlog.get_logger()
 
 
 # Config stuff
-st.session_state["#enable_photo_upload"] = st.session_state.get("#enable_photo_upload", False)
-st.session_state["#should_fetch_from_local_storage"] = st.session_state.get("#should_fetch_from_local_storage", True)
-if st.session_state["#should_fetch_from_local_storage"] and (local_storage_data := get_app_state_from_local_storage()) is not None:
+st.session_state["#enable_photo_upload"] = st.session_state.get(
+    "#enable_photo_upload", False
+)
+st.session_state["#should_fetch_from_local_storage"] = st.session_state.get(
+    "#should_fetch_from_local_storage", True
+)
+if (
+    st.session_state["#should_fetch_from_local_storage"]
+    and (local_storage_data := get_app_state_from_local_storage()) is not None
+):
     # this is a one time check, so we indicate that we've done it
     st.session_state["#should_fetch_from_local_storage"] = False
     # OK, here we check if the session state is empty, if so, we create a default state
@@ -51,13 +56,11 @@ def main():
         if key not in st.session_state:
             st.session_state[key] = value
 
-    for k in st.session_state.keys():
+    for k in st.session_state:
         if (k.startswith("/companionships_data")) and (
             not any(
-                [
-                    k.startswith(f"/companionships_data/{i}")
-                    for i in range(st.session_state["/num_companionships"])
-                ]
+                k.startswith(f"/companionships_data/{i}")
+                for i in range(st.session_state["/num_companionships"])
             )
         ):
             del st.session_state[k]
@@ -75,18 +78,19 @@ def main():
 
         st.markdown("---")
         st.markdown("### Instructions")
-        st.markdown(f"""
+        st.markdown(
+            f"""
         1. Set the number of companionships
         1. For each companionship, set the number of missionaries (2 or 3)
         {"1. Upload photos and enter names for each missionary" if st.session_state["#enable_photo_upload"] else ""}
         1. Click 'Generate Meal Planner' to create the image
-        """)
+        """
+        )
 
         st.markdown("---")
         st.markdown("### Experimental Features")
         st.markdown("_These features are experimental and may not work as expected._")
         st.toggle("Enable Photo Upload", key="#enable_photo_upload")
-        
 
     # Main content
     st.subheader("📸 Missionary Information")
@@ -108,7 +112,7 @@ def main():
 
             # Photo upload
             if st.session_state["#enable_photo_upload"]:
-                photo: st.UploadedFile = st.file_uploader(
+                st.file_uploader(
                     f"Photo for Missionary {missionary_index + 1}",
                     type=["png", "jpg", "jpeg"],
                     help="Upload a clear photo of the missionary",
@@ -166,13 +170,12 @@ def main():
 
 def generate_meal_planner():
     """Generate the meal planner image using WeasyPrint"""
-    
 
     try:
         app_state = AppState.from_session_state(
             {k: v for k, v in st.session_state.items() if k.startswith("/")}
         )
-        
+
         save_app_state_to_local_storage(app_state)
 
         pdf_data: bytes = generate_meal_planner_pdf(app_state)
@@ -182,8 +185,7 @@ def generate_meal_planner():
         st.success("✅ Meal planner generated successfully!")
 
     except Exception as e:
-        st.error(f"❌ Error generating meal planner: {str(e)}")
-        print(f"Error: {e}")
+        st.error(f"❌ Error generating meal planner: {e!s}")
 
 
 def split_full_name(value: str) -> tuple[str, str]:

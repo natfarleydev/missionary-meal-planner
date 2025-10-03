@@ -4,13 +4,10 @@ import base64
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel
-
 from jinja2 import Template
 from weasyprint import CSS, HTML
 
 from state_model import AppState
-
 
 _MEAL_PLANNER_CSS = """
 @page {
@@ -42,7 +39,7 @@ def generate_meal_planner_pdf(app_state: AppState) -> bytes:
 
     template_path = Path(__file__).resolve().parent / "templates" / "meal_planner.html"
     if not template_path.exists():
-        raise FileNotFoundError(f"Template not found at {template_path}")
+        raise FileNotFoundError
 
     template = Template(template_path.read_text(encoding="utf-8"))
     companionships_context = app_state.model_dump()["companionships_data"]
@@ -56,17 +53,16 @@ def generate_meal_planner_pdf(app_state: AppState) -> bytes:
 def pdf_bytes_to_base64(pdf_bytes: bytes) -> str:
     """Encode PDF bytes as a plain base64 string for browser embedding."""
 
-    if not isinstance(pdf_bytes, (bytes, bytearray)):
-        raise TypeError("pdf_bytes must be a bytes-like object")
+    if not isinstance(pdf_bytes, bytes | bytearray):
+        raise TypeError
 
     if not pdf_bytes:
         return ""
 
-    encoded = base64.b64encode(bytes(pdf_bytes)).decode("utf-8")
-    return encoded
+    return base64.b64encode(bytes(pdf_bytes)).decode("utf-8")
 
 
-def _resolve_photo_source(photo: Any) -> str | None:
+def _resolve_photo_source(photo: Any) -> str | None:  # noqa: PLR0911
     """Return a data URI suitable for embedding in HTML for the provided photo value."""
 
     if not photo:

@@ -1,16 +1,16 @@
 """Pytest tests for local storage functions."""
 
 import json
-import pytest
 from unittest.mock import patch
 
+import pytest
+
 from local_storage import (
+    STORAGE_KEY,
     get_app_state_from_local_storage,
     save_app_state_to_local_storage,
-    STORAGE_KEY,
 )
-
-from state_model import AppState
+from state_model import AppState, Companionship, Missionary
 
 
 class TestGetAppStateFromLocalStorage:
@@ -28,12 +28,8 @@ class TestGetAppStateFromLocalStorage:
             result = get_app_state_from_local_storage()
 
             assert isinstance(result, AppState)
-            assert (
-                result.num_companionships == expected_app_state.num_companionships
-            )
-            assert (
-                result.companionships_data == expected_app_state.companionships_data
-            )
+            assert result.num_companionships == expected_app_state.num_companionships
+            assert result.companionships_data == expected_app_state.companionships_data
             mock_js_eval.assert_called_once_with(
                 js_expressions=f"localStorage.getItem('{STORAGE_KEY}') ?? false",
                 key="get_app_data",
@@ -52,9 +48,7 @@ class TestGetAppStateFromLocalStorage:
         with patch("local_storage.streamlit_js_eval") as mock_js_eval:
             mock_js_eval.return_value = "invalid json"
 
-            with pytest.raises(
-                ValueError, match="Invalid JSON data in localStorage"
-            ):
+            with pytest.raises(ValueError, match="Invalid JSON data in localStorage"):
                 get_app_state_from_local_storage()
 
     def test_get_app_state_none_returned(self):
@@ -90,7 +84,9 @@ class TestSaveAppStateToLocalStorage:
             call_kwargs = mock_js_eval.call_args[1]
             actual_js_expression = call_kwargs["js_expressions"]
             expected_json = app_state.model_dump_json(exclude_none=False)
-            expected_js_expression = f"localStorage.setItem('{STORAGE_KEY}', '{expected_json}')"
+            expected_js_expression = (
+                f"localStorage.setItem('{STORAGE_KEY}', '{expected_json}')"
+            )
 
             assert actual_js_expression == expected_js_expression
             mock_js_eval.assert_called_once()
@@ -98,7 +94,6 @@ class TestSaveAppStateToLocalStorage:
 
     def test_save_app_state_with_special_characters(self):
         """Test saving app state with special characters that need escaping."""
-        from state_model import Missionary, Companionship
 
         # Create missionaries with special characters in names
         missionaries = [
@@ -115,8 +110,12 @@ class TestSaveAppStateToLocalStorage:
             actual_js_expression = call_kwargs["js_expressions"]
             # The JSON should contain the special characters properly escaped for JavaScript
             # model_dump_json() handles escaping differently than json.dumps()
-            assert "O'Connor" in actual_js_expression  # Should be properly escaped in the JSON
-            assert "Smith's" in actual_js_expression   # Should be properly escaped in the JSON
+            assert (
+                "O'Connor" in actual_js_expression
+            )  # Should be properly escaped in the JSON
+            assert (
+                "Smith's" in actual_js_expression
+            )  # Should be properly escaped in the JSON
             # Also check that the JSON structure is correct
             assert '"companionships_data"' in actual_js_expression
             assert '"missionaries"' in actual_js_expression
