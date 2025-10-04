@@ -1,0 +1,4 @@
+---
+globs: streamlit_app.py
+alwaysApply: false
+---

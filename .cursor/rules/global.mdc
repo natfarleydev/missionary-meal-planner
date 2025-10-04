@@ -12,6 +12,7 @@ uv run python -m pytest
 * Write unit tests with pytest for all non-streamlit functionality (e.g. converting from one type to another, or manipulating JSON)
 * Only keep streamlit logic in streamlit_app.py
 * Run pre-commit to automatically fix linting before trying yourself
+* By convention, we are always type checking
 
 ## Testing
 Run tests with
