@@ -56,7 +56,7 @@ def display_uploaded_photo(
     photo_state_key: str,
 ) -> None:
     try:
-        image_bytes = photo_data_uri_to_bytes(base64_payload)
+        photo_data_uri_to_bytes(base64_payload)
     except (binascii.Error, ValueError):
         st.warning(
             "Saved photo data is invalid. Please upload a new image.",
@@ -66,19 +66,31 @@ def display_uploaded_photo(
         st.rerun()
         return
 
-    col1, col2 = st.columns([4, 1])
+    photo_html = f"""
+    <div style='display: flex; align-items: center; justify-content: center; padding: 0.25rem 0;'>
+        <img
+            src="{base64_payload}"
+            alt="Missionary {missionary_index + 1} photo"
+            style="
+                width: 50px;
+                height: 50px;
+                max-width: 50px;
+                max-height: 50px;
+                object-fit: cover;
+                border-radius: 50%;
+                border: 2px solid #ddd;
+            "
+        />
+    </div>
+    """
+    preview_col, delete_col = st.columns(2)
 
-    with col1:
-        st.image(
-            image_bytes,
-            caption=f"Missionary {missionary_index + 1} Photo",
-            width=200,
-        )
+    with preview_col:
+        st.markdown(photo_html, unsafe_allow_html=True)
 
-    with col2:
-        st.markdown("<br>", unsafe_allow_html=True)
+    with delete_col:
         if st.button(
-            "🗑️",
+            "🗑️ Delete photo",
             key=f"delete_photo_{companionship_index}_{missionary_index}",
             help="Delete photo",
         ):
@@ -221,39 +233,43 @@ def main():
 
             photo_status = _get_photo_state(st.session_state.get(photo_path))
 
-            if photo_status is PhotoState.READY:
-                display_uploaded_photo(
-                    base64_payload=st.session_state[photo_path],
-                    companionship_index=companionship_index,
-                    missionary_index=missionary_index,
-                    photo_state_key=photo_path,
+            name_col, photo_col = st.columns(2)
+
+            with name_col:
+                st.text_input(
+                    st.session_state[
+                        f"/companionships_data/{companionship_index}/missionaries/{missionary_index}/title"
+                    ],
+                    key=f"/companionships_data/{companionship_index}/missionaries/{missionary_index}/name",
+                    placeholder="Missionary last name (e.g. Smith)",
                 )
-            else:
-                if photo_status is PhotoState.INVALID:
-                    st.warning(
-                        "Saved photo data is invalid. Please upload a new image.",
-                        icon="⚠️",
+
+            with photo_col:
+                if photo_status is PhotoState.READY:
+                    display_uploaded_photo(
+                        base64_payload=st.session_state[photo_path],
+                        companionship_index=companionship_index,
+                        missionary_index=missionary_index,
+                        photo_state_key=photo_path,
                     )
-                    st.session_state[photo_path] = None
-                    st.rerun()
+                else:
+                    if photo_status is PhotoState.INVALID:
+                        st.warning(
+                            "Saved photo data is invalid. Please upload a new image.",
+                            icon="⚠️",
+                        )
+                        st.session_state[photo_path] = None
+                        st.rerun()
 
-                uploaded_file = st.file_uploader(
-                    f"Photo for Missionary {missionary_index + 1}",
-                    type=["png", "jpg", "jpeg", "gif", "webp"],
-                    help="Upload a clear photo of the missionary",
-                    key=uploader_key,
-                )
+                    uploaded_file = st.file_uploader(
+                        f"Photo for Missionary {missionary_index + 1}",
+                        type=["png", "jpg", "jpeg", "gif", "webp"],
+                        help="Upload a clear photo of the missionary",
+                        key=uploader_key,
+                    )
 
-                if uploaded_file is not None:
-                    handle_uploaded_photo(photo_path, uploaded_file)
-
-            st.text_input(
-                st.session_state[
-                    f"/companionships_data/{companionship_index}/missionaries/{missionary_index}/title"
-                ],
-                key=f"/companionships_data/{companionship_index}/missionaries/{missionary_index}/name",
-                placeholder="Missionary last name (e.g. Smith)",
-            )
+                    if uploaded_file is not None:
+                        handle_uploaded_photo(photo_path, uploaded_file)
 
     # Generate button
     if st.button("🍽️ Generate Meal Planner", type="primary", width="stretch"):
