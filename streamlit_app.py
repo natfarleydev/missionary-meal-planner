@@ -1,3 +1,7 @@
+import base64
+import binascii
+from enum import Enum, auto
+
 import streamlit as st
 import structlog
 
@@ -9,6 +13,74 @@ from local_storage import (
 from state_model import (
     AppState,
 )
+from utils import uploaded_file_to_base64
+
+
+class PhotoState(Enum):
+    EMPTY = auto()
+    INVALID = auto()
+    READY = auto()
+
+
+def _get_photo_state(photo_value: object) -> PhotoState:
+    if not isinstance(photo_value, str):
+        return PhotoState.EMPTY
+    if not photo_value.strip():
+        return PhotoState.EMPTY
+    try:
+        base64.b64decode(photo_value, validate=True)
+    except (binascii.Error, ValueError):
+        return PhotoState.INVALID
+    return PhotoState.READY
+
+
+def handle_uploaded_photo(photo_path: str, uploaded_file: object) -> None:
+    try:
+        encoded = uploaded_file_to_base64(uploaded_file)
+    except (ValueError, TypeError) as exc:
+        st.error(f"Error processing uploaded file: {exc}")
+    else:
+        st.session_state[photo_path] = encoded
+        st.rerun()
+
+
+def display_uploaded_photo(
+    *,
+    base64_payload: str,
+    companionship_index: int,
+    missionary_index: int,
+    photo_state_key: str,
+) -> None:
+    try:
+        image_bytes = base64.b64decode(base64_payload, validate=True)
+    except (binascii.Error, ValueError):
+        st.warning(
+            "Saved photo data is invalid. Please upload a new image.",
+            icon="⚠️",
+        )
+        st.session_state[photo_state_key] = ""
+        st.rerun()
+        return
+
+    col1, col2 = st.columns([4, 1])
+
+    with col1:
+        st.image(
+            image_bytes,
+            caption=f"Missionary {missionary_index + 1} Photo",
+            width=200,
+        )
+
+    with col2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button(
+            "🗑️",
+            key=f"delete_photo_{companionship_index}_{missionary_index}",
+            help="Delete photo",
+        ):
+            st.session_state[photo_state_key] = ""
+            st.rerun()
+
 
 log = structlog.get_logger()
 
@@ -112,12 +184,36 @@ def main():
 
             # Photo upload
             if st.session_state["#enable_photo_upload"]:
-                st.file_uploader(
-                    f"Photo for Missionary {missionary_index + 1}",
-                    type=["png", "jpg", "jpeg"],
-                    help="Upload a clear photo of the missionary",
-                    key=f"#component/companionships_data/{companionship_index}/missionaries/{missionary_index}/photo",
-                )
+                photo_path = f"/companionships_data/{companionship_index}/missionaries/{missionary_index}/photo"
+                uploader_key = f"#component/companionships_data/{companionship_index}/missionaries/{missionary_index}/photo_uploader"
+
+                photo_status = _get_photo_state(st.session_state.get(photo_path))
+
+                if photo_status is PhotoState.READY:
+                    display_uploaded_photo(
+                        base64_payload=st.session_state[photo_path],
+                        companionship_index=companionship_index,
+                        missionary_index=missionary_index,
+                        photo_state_key=photo_path,
+                    )
+                else:
+                    if photo_status is PhotoState.INVALID:
+                        st.warning(
+                            "Saved photo data is invalid. Please upload a new image.",
+                            icon="⚠️",
+                        )
+                        st.session_state[photo_path] = ""
+                        st.rerun()
+
+                    uploaded_file = st.file_uploader(
+                        f"Photo for Missionary {missionary_index + 1}",
+                        type=["png", "jpg", "jpeg"],
+                        help="Upload a clear photo of the missionary",
+                        key=uploader_key,
+                    )
+
+                    if uploaded_file is not None:
+                        handle_uploaded_photo(photo_path, uploaded_file)
 
             st.segmented_control(
                 f"Missionary {missionary_index + 1} Title",

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import contextlib
 from typing import Any
 
 
@@ -265,3 +267,43 @@ def _set_nested_value(
             obj[first_part] = value
         else:
             _set_nested_value(obj[first_part], remaining_parts, value)
+
+
+def uploaded_file_to_base64(uploaded_file: Any) -> str:
+    """Return a base64-encoded representation of a file-like object.
+
+    This helper normalises the behaviour of ``st.UploadedFile`` objects by
+    reading their bytes, optionally rewinding the buffer, and returning the
+    contents encoded as UTF-8 base64 text. The function accepts any object that
+    exposes a ``read`` method, making it straightforward to unit-test with
+    ``io.BytesIO`` or similar file-like implementations.
+    """
+
+    if uploaded_file is None:
+        raise ValueError("No file provided")
+
+    if not hasattr(uploaded_file, "read"):
+        raise TypeError("Uploaded file must provide a read() method")
+
+    data = uploaded_file.read()
+
+    # Reset the cursor when possible to avoid surprising downstream behaviour.
+    if hasattr(uploaded_file, "seek"):
+        with contextlib.suppress(OSError, ValueError):
+            uploaded_file.seek(0)
+
+    if data is None:
+        raise ValueError("Uploaded file produced no data")
+
+    if isinstance(data, str):
+        data = data.encode("utf-8")
+    elif isinstance(data, memoryview):
+        data = data.tobytes()
+
+    if not isinstance(data, bytes | bytearray):
+        raise TypeError("Uploaded file data must be bytes-like")
+
+    if not data:
+        raise ValueError("Uploaded file is empty")
+
+    return base64.b64encode(bytes(data)).decode("utf-8")

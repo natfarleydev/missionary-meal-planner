@@ -1,6 +1,15 @@
 """Pytest tests for utility functions."""
 
-from utils import flatten_to_json_pointers, unflatten_from_json_pointers
+import base64
+from io import BytesIO
+
+import pytest
+
+from utils import (
+    flatten_to_json_pointers,
+    unflatten_from_json_pointers,
+    uploaded_file_to_base64,
+)
 
 
 class TestFlattenToJsonPointers:
@@ -341,3 +350,32 @@ class TestUnflattenFromJsonPointers:
 
         expected = "root_value"  # Root pointer returns the value directly
         assert result == expected
+
+
+class TestUploadedFileToBase64:
+    """Tests for the uploaded_file_to_base64 helper."""
+
+    def test_uploaded_file_to_base64_reads_bytes(self) -> None:
+        payload = b"missionary photo"
+        buffer = BytesIO(payload)
+
+        encoded = uploaded_file_to_base64(buffer)
+
+        assert base64.b64decode(encoded) == payload
+
+    def test_uploaded_file_to_base64_rewinds_buffer(self) -> None:
+        payload = b"abc"
+        buffer = BytesIO(payload)
+
+        uploaded_file_to_base64(buffer)
+
+        assert buffer.tell() == 0
+        assert buffer.read() == payload
+
+    @pytest.mark.parametrize(
+        "file_like",
+        [None, object(), BytesIO(b"")],
+    )
+    def test_uploaded_file_to_base64_invalid_inputs(self, file_like: object) -> None:
+        with pytest.raises((ValueError, TypeError)):
+            uploaded_file_to_base64(file_like)  # type: ignore[arg-type]
