@@ -90,9 +90,6 @@ log = structlog.get_logger()
 
 
 # Config stuff
-st.session_state["#enable_photo_upload"] = st.session_state.get(
-    "#enable_photo_upload", False
-)
 st.session_state["#should_fetch_from_local_storage"] = st.session_state.get(
     "#should_fetch_from_local_storage", True
 )
@@ -160,18 +157,13 @@ def main():
         st.markdown("---")
         st.markdown("### Instructions")
         st.markdown(
-            f"""
+            """
         1. Set the number of companionships
         1. For each companionship, set the number of missionaries (2 or 3)
-        {"1. Upload photos and enter names for each missionary" if st.session_state["#enable_photo_upload"] else ""}
+        1. Upload photos and enter names for each missionary
         1. Click 'Generate Meal Planner' to create the image
         """
         )
-
-        st.markdown("---")
-        st.markdown("### Experimental Features")
-        st.markdown("_These features are experimental and may not work as expected._")
-        st.toggle("Enable Photo Upload", key="#enable_photo_upload")
 
     # Main content
     st.subheader("📸 Missionary Information")
@@ -224,37 +216,36 @@ def main():
         # Missionary inputs
         for missionary_index in range(missionary_count):
             # Photo upload
-            if st.session_state["#enable_photo_upload"]:
-                photo_path = f"/companionships_data/{companionship_index}/missionaries/{missionary_index}/photo"
-                uploader_key = f"#component/companionships_data/{companionship_index}/missionaries/{missionary_index}/photo_uploader"
+            photo_path = f"/companionships_data/{companionship_index}/missionaries/{missionary_index}/photo"
+            uploader_key = f"#component/companionships_data/{companionship_index}/missionaries/{missionary_index}/photo_uploader"
 
-                photo_status = _get_photo_state(st.session_state.get(photo_path))
+            photo_status = _get_photo_state(st.session_state.get(photo_path))
 
-                if photo_status is PhotoState.READY:
-                    display_uploaded_photo(
-                        base64_payload=st.session_state[photo_path],
-                        companionship_index=companionship_index,
-                        missionary_index=missionary_index,
-                        photo_state_key=photo_path,
+            if photo_status is PhotoState.READY:
+                display_uploaded_photo(
+                    base64_payload=st.session_state[photo_path],
+                    companionship_index=companionship_index,
+                    missionary_index=missionary_index,
+                    photo_state_key=photo_path,
+                )
+            else:
+                if photo_status is PhotoState.INVALID:
+                    st.warning(
+                        "Saved photo data is invalid. Please upload a new image.",
+                        icon="⚠️",
                     )
-                else:
-                    if photo_status is PhotoState.INVALID:
-                        st.warning(
-                            "Saved photo data is invalid. Please upload a new image.",
-                            icon="⚠️",
-                        )
-                        st.session_state[photo_path] = None
-                        st.rerun()
+                    st.session_state[photo_path] = None
+                    st.rerun()
 
-                    uploaded_file = st.file_uploader(
-                        f"Photo for Missionary {missionary_index + 1}",
-                        type=["png", "jpg", "jpeg", "gif", "webp"],
-                        help="Upload a clear photo of the missionary",
-                        key=uploader_key,
-                    )
+                uploaded_file = st.file_uploader(
+                    f"Photo for Missionary {missionary_index + 1}",
+                    type=["png", "jpg", "jpeg", "gif", "webp"],
+                    help="Upload a clear photo of the missionary",
+                    key=uploader_key,
+                )
 
-                    if uploaded_file is not None:
-                        handle_uploaded_photo(photo_path, uploaded_file)
+                if uploaded_file is not None:
+                    handle_uploaded_photo(photo_path, uploaded_file)
 
             st.text_input(
                 st.session_state[
