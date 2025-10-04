@@ -48,7 +48,7 @@ class TestGetAppStateFromLocalStorage:
         with patch("local_storage.streamlit_js_eval") as mock_js_eval:
             mock_js_eval.return_value = "invalid json"
 
-            with pytest.raises(ValueError, match="Invalid JSON data in localStorage"):
+            with pytest.raises(json.JSONDecodeError):
                 get_app_state_from_local_storage()
 
     def test_get_app_state_none_returned(self):

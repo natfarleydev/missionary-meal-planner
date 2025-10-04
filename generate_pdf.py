@@ -42,7 +42,9 @@ def generate_meal_planner_pdf(app_state: AppState) -> bytes:
         raise FileNotFoundError
 
     template = Template(template_path.read_text(encoding="utf-8"))
-    companionships_context = app_state.model_dump()["companionships_data"]
+    companionships_context = app_state.model_dump(exclude_none=False)[
+        "companionships_data"
+    ]
 
     html_content = template.render(companionships=companionships_context)
     html_doc = HTML(string=html_content, base_url=str(template_path.parent))

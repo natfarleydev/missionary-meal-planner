@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import contextlib
+from pathlib import Path
+import re
 from typing import Any
 
 
@@ -307,3 +310,64 @@ def uploaded_file_to_base64(uploaded_file: Any) -> str:
         raise ValueError("Uploaded file is empty")
 
     return base64.b64encode(bytes(data)).decode("utf-8")
+
+
+_PHOTO_DATA_URI_PATTERN = re.compile(
+    r"^data:image/(png|jpeg|jpg|gif|webp);base64,(?P<payload>[A-Za-z0-9+/=]+)$",
+    re.IGNORECASE,
+)
+
+_EXTENSION_TO_MIME = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+}
+
+_ALLOWED_IMAGE_MIME_TYPES = set(_EXTENSION_TO_MIME.values()) | {"image/jpg"}
+
+
+def is_valid_photo_data_uri(value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+
+    stripped = value.strip()
+    if not stripped:
+        return False
+
+    match = _PHOTO_DATA_URI_PATTERN.fullmatch(stripped)
+    if not match:
+        return False
+
+    try:
+        base64.b64decode(match.group("payload"), validate=True)
+    except (binascii.Error, ValueError):
+        return False
+
+    return True
+
+
+def photo_data_uri_to_bytes(value: str) -> bytes:
+    match = _PHOTO_DATA_URI_PATTERN.fullmatch(value.strip())
+    if not match:
+        raise ValueError("Invalid photo data URI")
+
+    return base64.b64decode(match.group("payload"), validate=True)
+
+
+def guess_image_mime_type(uploaded_file: object) -> str | None:
+    mime_type = getattr(uploaded_file, "type", None)
+    if isinstance(mime_type, str):
+        normalized = mime_type.lower()
+        if normalized == "image/jpg":
+            return "image/jpeg"
+        if normalized in _ALLOWED_IMAGE_MIME_TYPES:
+            return normalized
+
+    name = getattr(uploaded_file, "name", None)
+    if isinstance(name, str):
+        extension = Path(name).suffix.lower()
+        return _EXTENSION_TO_MIME.get(extension)
+
+    return None

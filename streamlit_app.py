@@ -1,4 +1,3 @@
-import base64
 import binascii
 from enum import Enum, auto
 
@@ -10,10 +9,13 @@ from local_storage import (
     get_app_state_from_local_storage,
     save_app_state_to_local_storage,
 )
-from state_model import (
-    AppState,
+from state_model import AppState
+from utils import (
+    guess_image_mime_type,
+    is_valid_photo_data_uri,
+    photo_data_uri_to_bytes,
+    uploaded_file_to_base64,
 )
-from utils import uploaded_file_to_base64
 
 
 class PhotoState(Enum):
@@ -23,14 +25,10 @@ class PhotoState(Enum):
 
 
 def _get_photo_state(photo_value: object) -> PhotoState:
-    if not isinstance(photo_value, str):
+    if not is_valid_photo_data_uri(photo_value):
+        if isinstance(photo_value, str) and photo_value.strip():
+            return PhotoState.INVALID
         return PhotoState.EMPTY
-    if not photo_value.strip():
-        return PhotoState.EMPTY
-    try:
-        base64.b64decode(photo_value, validate=True)
-    except (binascii.Error, ValueError):
-        return PhotoState.INVALID
     return PhotoState.READY
 
 
@@ -40,7 +38,12 @@ def handle_uploaded_photo(photo_path: str, uploaded_file: object) -> None:
     except (ValueError, TypeError) as exc:
         st.error(f"Error processing uploaded file: {exc}")
     else:
-        st.session_state[photo_path] = encoded
+        photo_mime_type = guess_image_mime_type(uploaded_file)
+        if photo_mime_type is None:
+            st.error("Uploaded file must be an image (PNG, JPG, JPEG, GIF, WEBP)")
+            st.stop()
+
+        st.session_state[photo_path] = f"data:{photo_mime_type};base64,{encoded}"
         st.rerun()
 
 
@@ -52,7 +55,7 @@ def display_uploaded_photo(
     photo_state_key: str,
 ) -> None:
     try:
-        image_bytes = base64.b64decode(base64_payload, validate=True)
+        image_bytes = photo_data_uri_to_bytes(base64_payload)
     except (binascii.Error, ValueError):
         st.warning(
             "Saved photo data is invalid. Please upload a new image.",
@@ -202,12 +205,12 @@ def main():
                             "Saved photo data is invalid. Please upload a new image.",
                             icon="⚠️",
                         )
-                        st.session_state[photo_path] = ""
+                        st.session_state[photo_path] = None
                         st.rerun()
 
                     uploaded_file = st.file_uploader(
                         f"Photo for Missionary {missionary_index + 1}",
-                        type=["png", "jpg", "jpeg"],
+                        type=["png", "jpg", "jpeg", "gif", "webp"],
                         help="Upload a clear photo of the missionary",
                         key=uploader_key,
                     )
@@ -246,7 +249,7 @@ def main():
 
         # Display the PDF using an iframe
         pdf_html = f"""
-        <iframe src="data:application/pdf;base64,{st.session_state['/generated_pdf']}"
+        <iframe src="data:application/pdf;base64,{st.session_state["/generated_pdf"]}"
                 width="100%"
                 height="600"
                 style="border: none;">

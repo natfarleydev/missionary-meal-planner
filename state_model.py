@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 from pydantic import BaseModel, Field
+
+from utils import flatten_to_json_pointers, unflatten_from_json_pointers
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-from utils import flatten_to_json_pointers, unflatten_from_json_pointers
+PhotoDataUri = Annotated[
+    str,
+    Field(
+        pattern=r"^data:image/(?:png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/=]+$",
+    ),
+]
+
 
 DEFAULT_COMPANIONSHIP_COUNT = 4
 DEFAULT_MISSIONARIES_PER_COMPANIONSHIP = 2
@@ -26,7 +34,7 @@ class Missionary(BaseModel):
 
     title: str = "Elder"
     name: str = ""
-    photo: str | None = None
+    photo: PhotoDataUri | None = None
 
 
 class Companionship(BaseModel):

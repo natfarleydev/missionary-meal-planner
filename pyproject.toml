@@ -102,12 +102,13 @@ ignore = [
 fixable = ["ALL"]
 unfixable = [
     "ERA001", # Found commented-out code (don't auto-remove)
-    "F401",   # Module imported but unused (manual review needed)
     "F841",   # Local variable is assigned to but never used (manual review needed)
 ]
 
 [tool.ruff.lint.isort]
 known-first-party = ["missionary_meal_planner", "components", "utils", "state_model"]
+force-sort-within-sections = true
+split-on-trailing-comma = true
 
 [tool.ruff.lint.per-file-ignores]
 "test_*.py" = [
