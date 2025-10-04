@@ -9,13 +9,12 @@ from local_storage import (
     get_app_state_from_local_storage,
     save_app_state_to_local_storage,
 )
-from state_model import AppState
-from utils import (
-    guess_image_mime_type,
-    is_valid_photo_data_uri,
-    photo_data_uri_to_bytes,
-    uploaded_file_to_base64,
+from photo_processing import (
+    UnsupportedImageTypeError,
+    process_uploaded_photo,
 )
+from state_model import AppState
+from utils import is_valid_photo_data_uri, photo_data_uri_to_bytes
 
 
 class PhotoState(Enum):
@@ -34,17 +33,19 @@ def _get_photo_state(photo_value: object) -> PhotoState:
 
 def handle_uploaded_photo(photo_path: str, uploaded_file: object) -> None:
     try:
-        encoded = uploaded_file_to_base64(uploaded_file)
+        processed = process_uploaded_photo(uploaded_file)
+    except UnsupportedImageTypeError as exc:
+        st.error(str(exc))
+        return
     except (ValueError, TypeError) as exc:
         st.error(f"Error processing uploaded file: {exc}")
-    else:
-        photo_mime_type = guess_image_mime_type(uploaded_file)
-        if photo_mime_type is None:
-            st.error("Uploaded file must be an image (PNG, JPG, JPEG, GIF, WEBP)")
-            st.stop()
+        return
+    except Exception as exc:
+        st.error(f"Unexpected error processing photo: {exc}")
+        return
 
-        st.session_state[photo_path] = f"data:{photo_mime_type};base64,{encoded}"
-        st.rerun()
+    st.session_state[photo_path] = processed.data_uri
+    st.rerun()
 
 
 def display_uploaded_photo(

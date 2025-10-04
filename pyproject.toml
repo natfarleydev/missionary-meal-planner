@@ -17,6 +17,8 @@ dependencies = [
     "pydantic>=2.11.9",
     "streamlit-js-eval>=0.1.7",
     "structlog>=25.4.0",
+    "pyfacecrop>=0.0.25",
+    "importlib-resources>=6.5.2",
 ]
 
 [project.scripts]

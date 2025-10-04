@@ -272,15 +272,8 @@ def _set_nested_value(
             _set_nested_value(obj[first_part], remaining_parts, value)
 
 
-def uploaded_file_to_base64(uploaded_file: Any) -> str:
-    """Return a base64-encoded representation of a file-like object.
-
-    This helper normalises the behaviour of ``st.UploadedFile`` objects by
-    reading their bytes, optionally rewinding the buffer, and returning the
-    contents encoded as UTF-8 base64 text. The function accepts any object that
-    exposes a ``read`` method, making it straightforward to unit-test with
-    ``io.BytesIO`` or similar file-like implementations.
-    """
+def read_uploaded_file_bytes(uploaded_file: Any) -> bytes:
+    """Read the raw bytes from a file-like object with helpful validation."""
 
     if uploaded_file is None:
         raise ValueError("No file provided")
@@ -309,7 +302,14 @@ def uploaded_file_to_base64(uploaded_file: Any) -> str:
     if not data:
         raise ValueError("Uploaded file is empty")
 
-    return base64.b64encode(bytes(data)).decode("utf-8")
+    return bytes(data)
+
+
+def uploaded_file_to_base64(uploaded_file: Any) -> str:
+    """Return a base64-encoded representation of a file-like object."""
+
+    data = read_uploaded_file_bytes(uploaded_file)
+    return base64.b64encode(data).decode("utf-8")
 
 
 _PHOTO_DATA_URI_PATTERN = re.compile(
