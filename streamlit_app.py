@@ -112,6 +112,11 @@ for key, value in default_state.to_session_state().items():
     if key not in st.session_state:
         st.session_state[key] = value
 
+# Set up generated pdf bytes
+st.session_state["#generated_pdf_bytes"] = st.session_state.get(
+    "#generated_pdf_bytes", None
+)
+
 
 # Page configuration
 st.set_page_config(
