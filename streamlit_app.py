@@ -179,17 +179,49 @@ def main():
     for companionship_index in range(st.session_state["/num_companionships"]):
         st.subheader(f"Companionship {companionship_index + 1}")
 
-        missionary_count = st.radio(
-            f"Number of Missionaries in Companionship {companionship_index + 1}",
-            options=[2, 3],
-            key=f"/missionary_counts/{companionship_index}",
-            horizontal=True,
+        companionship_config_cols = st.columns(2)
+        with companionship_config_cols[0]:
+            missionary_count = st.segmented_control(
+                f"Number of Missionaries in Companionship {companionship_index + 1}",
+                options=[2, 3],
+                default=2,
+                key=f"/missionary_counts/{companionship_index}",
+            )
+        with companionship_config_cols[1]:
+            gender_of_companionship = st.segmented_control(
+                f"Gender of Companionship {companionship_index + 1}",
+                options=["Elders", "Sisters", "Elder and Sister"],
+                default="Elders",
+                selection_mode="single",
+                key=f"#component/companionships_data/{companionship_index}/missionaries/*/title",
+            )
+            match gender_of_companionship:
+                case "Elders":
+                    for i in range(missionary_count):
+                        st.session_state[
+                            f"/companionships_data/{companionship_index}/missionaries/{i}/title"
+                        ] = "Elder"
+                case "Sisters":
+                    for i in range(missionary_count):
+                        st.session_state[
+                            f"/companionships_data/{companionship_index}/missionaries/{i}/title"
+                        ] = "Sister"
+                case "Elder and Sister":
+                    st.session_state[
+                        f"/companionships_data/{companionship_index}/missionaries/0/title"
+                    ] = "Elder"
+                    st.session_state[
+                        f"/companionships_data/{companionship_index}/missionaries/1/title"
+                    ] = "Sister"
+
+        st.text_input(
+            f"Phone Number for Companionship {companionship_index + 1}",
+            key=f"/companionships_data/{companionship_index}/phone_number",
+            placeholder="07800 314 ...",
         )
 
         # Missionary inputs
         for missionary_index in range(missionary_count):
-            st.markdown(f"**Missionary {missionary_index + 1}**")
-
             # Photo upload
             if st.session_state["#enable_photo_upload"]:
                 photo_path = f"/companionships_data/{companionship_index}/missionaries/{missionary_index}/photo"
@@ -223,26 +255,13 @@ def main():
                     if uploaded_file is not None:
                         handle_uploaded_photo(photo_path, uploaded_file)
 
-            st.segmented_control(
-                f"Missionary {missionary_index + 1} Title",
-                options=["Elder", "Sister"],
-                default="Elder",
-                selection_mode="single",
-                key=f"/companionships_data/{companionship_index}/missionaries/{missionary_index}/title",
-                label_visibility="collapsed",
-            )
             st.text_input(
-                f"Missionary {missionary_index + 1} Name",
+                st.session_state[
+                    f"/companionships_data/{companionship_index}/missionaries/{missionary_index}/title"
+                ],
                 key=f"/companionships_data/{companionship_index}/missionaries/{missionary_index}/name",
-                label_visibility="collapsed",
-                placeholder="Enter missionary name",
+                placeholder="Missionary last name (e.g. Smith)",
             )
-
-        st.text_input(
-            f"Phone Number for Companionship {companionship_index + 1}",
-            key=f"/companionships_data/{companionship_index}/phone_number",
-            placeholder="Enter phone number",
-        )
 
     # Generate button
     if st.button("🍽️ Generate Meal Planner", type="primary", width="stretch"):
