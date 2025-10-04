@@ -47,7 +47,6 @@ def get_app_state_from_local_storage() -> AppState | None | bool:
     Raises:
         ValueError: If data exists but is invalid JSON.
     """
-    loading_msg = st.info("🔍 Retrieving saved data...")
 
     try:
         # Retrieve the JSON string from localStorage
@@ -60,7 +59,6 @@ def get_app_state_from_local_storage() -> AppState | None | bool:
 
         if not json_string:
             log.info("No app state found in localStorage", json_string=json_string)
-            loading_msg.success("✅ No saved data found!")
             return None
         # Parse the JSON string
         app_state_dict = json.loads(json_string)
@@ -70,13 +68,13 @@ def get_app_state_from_local_storage() -> AppState | None | bool:
         app_state = AppState.model_validate(app_state_dict)
         log.info("Created AppState object from localStorage", app_state=app_state)
 
-        loading_msg.success("✅ Saved data restored!")
+        st.success("✅ Saved data restored!")
 
     except (json.JSONDecodeError, TypeError):
-        loading_msg.exception("❌ Error retrieving app state from localStorage")
+        st.exception("❌ Error retrieving app state from localStorage")
         raise
     except Exception as e:
-        loading_msg.error(f"❌ Error retrieving data from localStorage: {e}")
+        st.error(f"❌ Error retrieving data from localStorage: {e}")
         raise ValueError("Error retrieving data from localStorage") from e
     else:
         return app_state
@@ -99,7 +97,6 @@ def save_app_state_to_local_storage(app_state: AppState) -> None:
         # Save to localStorage
         js_expression = f"localStorage.setItem('{STORAGE_KEY}', '{app_state_dict}')"
         streamlit_js_eval(js_expressions=js_expression, key="save_app_data")
-        st.success("✅ App state saved to localStorage successfully!")
 
     except (TypeError, ValueError) as e:
         raise ValueError("Error serializing app state") from e
