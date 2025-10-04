@@ -1,0 +1,23 @@
+---
+alwaysApply: true
+---
+
+All commands in the terminal need `uv run`, e.g.
+
+```sh
+uv run python -m pytest
+```
+
+* Do not run streamlit, the user will do this for you when needed
+* Write unit tests with pytest for all non-streamlit functionality (e.g. converting from one type to another, or manipulating JSON)
+* Only keep streamlit logic in streamlit_app.py
+* Run pre-commit to automatically fix linting before trying yourself
+
+## Testing
+Run tests with
+
+```sh
+uv run python -m pytest
+```
+
+Always run tests after editing them. Then run the linter(s), and run the tests after fixing linting.
