@@ -5,3 +5,4 @@ libharfbuzz-subset0
 libjpeg-dev
 libopenjp2-7-dev
 libffi-dev
+libgl1
