@@ -279,6 +279,15 @@ def main():
     if st.session_state["/generated_pdf"]:
         st.subheader("📋 Generated Meal Planner")
 
+        # Download button
+        st.download_button(
+            label="💾 Download PDF",
+            data=st.session_state["#generated_pdf_bytes"],
+            file_name="missionary_meal_planner.pdf",
+            mime="application/pdf",
+            width="stretch",
+        )
+
         # Display the PDF using an iframe
         pdf_html = f"""
         <iframe src="data:application/pdf;base64,{st.session_state["/generated_pdf"]}"
@@ -288,15 +297,6 @@ def main():
         </iframe>
         """
         st.components.v1.html(pdf_html, height=600)
-
-        # Download button
-        st.download_button(
-            label="💾 Download PDF",
-            data=st.session_state["#generated_pdf_bytes"],
-            file_name="missionary_meal_planner.pdf",
-            mime="application/pdf",
-            width="stretch",
-        )
 
 
 def generate_meal_planner():
