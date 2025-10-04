@@ -262,7 +262,7 @@ def main():
                         st.rerun()
 
                     uploaded_file = st.file_uploader(
-                        f"Photo for Missionary {missionary_index + 1}",
+                        f"Photo for Missionary {missionary_index + 1} (optional)",
                         type=["png", "jpg", "jpeg", "gif", "webp"],
                         help="Upload a clear photo of the missionary",
                         key=uploader_key,
