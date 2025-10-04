@@ -30,13 +30,12 @@
             width: 100%;
             border-collapse: collapse;
             margin: 0;
-            font-size: 13px;
-            height: auto;
+            font-size: 12px;
             table-layout: fixed;
         }
         th, td {
             border: 1px solid black;
-            padding: 6px;
+            padding: 4px;
             text-align: center;
             vertical-align: top;
             word-break: break-word;
@@ -44,51 +43,58 @@
         th {
             background-color: #f0f0f0;
             font-weight: bold;
-            min-height: 44px;
+            font-size: 11px;
         }
-        thead th:first-child,
+        .day-header {
+            padding: 6px 4px 2px 4px;
+        }
+        .day-header-date {
+            border-bottom: 1px dotted #666;
+            padding-bottom: 4px;
+            margin-bottom: 2px;
+            min-height: 12px;
+        }
         .companionship-cell {
-            width: 180px;
-        }
-        thead th:not(:first-child),
-        .day-cell {
-            width: calc((100% - 180px) / 7);
-        }
-        .companionship-cell {
+            width: 140px;
             text-align: left;
-            padding: 10px;
+            padding: 6px;
             vertical-align: top;
         }
+        .day-cell {
+            width: calc((100% - 140px) / 7);
+            min-height: 90px;
+            padding: 4px;
+        }
         .missionary-row {
-            min-height: 105px;
+            min-height: 90px;
         }
         .companionship-info {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 3px;
         }
         .missionary-info {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
         }
         .missionary-photo {
-            width: 32px;
-            height: 32px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             object-fit: cover;
             border: 1px solid #ccc;
         }
         .no-photo {
-            width: 32px;
-            height: 32px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             background-color: #f0f0f0;
             border: 1px solid #ccc;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 9px;
+            font-size: 7px;
             color: #666;
         }
         .missionary-details {
@@ -97,28 +103,21 @@
         }
         .missionary-name {
             font-weight: bold;
-            font-size: 11px;
+            font-size: 9px;
             margin: 0;
+            line-height: 1.1;
         }
         .phone-number {
-            margin-top: 4px;
-            text-align: center;
-        }
-        .day-cell {
-            min-height: 105px;
-            padding: 6px;
+            font-size: 8px;
+            color: #666;
+            margin-top: 2px;
         }
         .day-content {
             height: 100%;
             display: flex;
             flex-direction: column;
-            justify-content: space-around;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 6px;
-            font-size: 12px;
-            color: #666;
+            justify-content: flex-start;
+            font-size: 8px;
         }
         @page {
             size: A4 landscape;
@@ -144,13 +143,34 @@
         <thead>
             <tr>
                 <th></th>
-                <th>Monday</th>
-                <th>Tuesday</th>
-                <th>Wednesday</th>
-                <th>Thursday</th>
-                <th>Friday</th>
-                <th>Saturday</th>
-                <th>Sunday</th>
+                <th class="day-header">
+                    <div>Monday</div>
+                    <div class="day-header-date"></div>
+                </th>
+                <th class="day-header">
+                    <div>Tuesday</div>
+                    <div class="day-header-date"></div>
+                </th>
+                <th class="day-header">
+                    <div>Wednesday</div>
+                    <div class="day-header-date"></div>
+                </th>
+                <th class="day-header">
+                    <div>Thursday</div>
+                    <div class="day-header-date"></div>
+                </th>
+                <th class="day-header">
+                    <div>Friday</div>
+                    <div class="day-header-date"></div>
+                </th>
+                <th class="day-header">
+                    <div>Saturday</div>
+                    <div class="day-header-date"></div>
+                </th>
+                <th class="day-header">
+                    <div>Sunday</div>
+                    <div class="day-header-date"></div>
+                </th>
             </tr>
         </thead>
         <tbody>
@@ -205,9 +225,5 @@
             {% endfor %}
         </tbody>
     </table>
-
-    <div class="footer">
-        Generated by Missionary Meal Planner App
-    </div>
 </body>
 </html>
