@@ -237,3 +237,66 @@ def test_handle_photo_upload_stores_data_uri_on_success(
     # Data URI should be stored in session state
     assert mock_session_state["/photo_path"] == expected_data_uri
     assert mock_session_state["uploader_key_last_processed"] == "test.jpg"
+
+
+def test_handle_photo_upload_processes_new_file_replacing_old(
+    mock_session_state, sample_face_bytes
+):
+    """Test that uploading a different file to the same uploader works correctly."""
+    # First upload
+    mock_file_1 = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="photo1.jpg"
+    )
+    mock_session_state["uploader_key"] = mock_file_1
+
+    with patch("photo_upload.st.session_state", mock_session_state):
+        handle_photo_upload("/photo_path", "uploader_key")
+
+    assert mock_session_state["/photo_path"] is not None
+    assert mock_session_state["uploader_key_last_processed"] == "photo1.jpg"
+
+    # Second upload with different file to the same uploader
+    mock_file_2 = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="photo2.jpg"
+    )
+    mock_session_state["uploader_key"] = mock_file_2
+
+    with patch("photo_upload.st.session_state", mock_session_state):
+        handle_photo_upload("/photo_path", "uploader_key")
+
+    # Should process the new file and update tracking
+    assert mock_session_state["/photo_path"] is not None
+    assert mock_session_state["uploader_key_last_processed"] == "photo2.jpg"
+
+
+def test_multiple_uploaders_track_independently(mock_session_state, sample_face_bytes):
+    """Test that multiple uploaders on the same page track independently."""
+    # Upload to first missionary
+    mock_file_1 = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="missionary1.jpg"
+    )
+    mock_session_state["uploader_key_missionary_0"] = mock_file_1
+
+    with patch("photo_upload.st.session_state", mock_session_state):
+        handle_photo_upload("/photo_path_0", "uploader_key_missionary_0")
+
+    # Upload to second missionary
+    mock_file_2 = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="missionary2.jpg"
+    )
+    mock_session_state["uploader_key_missionary_1"] = mock_file_2
+
+    with patch("photo_upload.st.session_state", mock_session_state):
+        handle_photo_upload("/photo_path_1", "uploader_key_missionary_1")
+
+    # Both should be processed with independent tracking
+    assert mock_session_state["/photo_path_0"] is not None
+    assert mock_session_state["/photo_path_1"] is not None
+    assert (
+        mock_session_state["uploader_key_missionary_0_last_processed"]
+        == "missionary1.jpg"
+    )
+    assert (
+        mock_session_state["uploader_key_missionary_1_last_processed"]
+        == "missionary2.jpg"
+    )
