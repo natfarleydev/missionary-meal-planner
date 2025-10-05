@@ -143,6 +143,12 @@ def main():
 
     st.title("🍽️ Missionary Meal Planner")
 
+    # Display warning about mobile photo uploads
+    st.warning(
+        "⚠️ **Mobile Notice:** Photo uploads may not work properly on mobile devices. For best results, use a desktop or laptop computer.",
+        icon="📱",
+    )
+
     with st.sidebar:
         st.header("Settings")
         st.number_input(
