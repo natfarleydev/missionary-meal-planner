@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import base64
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from photo_processing import ProcessedPhoto, UnsupportedImageTypeError
+from photo_processing import ProcessedPhoto
 from photo_upload import get_uploaded_file_from_session_state, handle_photo_upload
 
 
@@ -63,19 +62,26 @@ def test_get_uploaded_file_from_session_state_returns_none_when_missing(
     assert result is None
 
 
-def test_handle_photo_upload_does_nothing_when_no_file(mock_session_state):
-    """Test that handle_photo_upload does nothing when no file is uploaded."""
+def test_handle_photo_upload_clears_state_when_no_file(mock_session_state):
+    """Test that handle_photo_upload clears state when no file is uploaded."""
+    # Pre-populate with existing data
+    mock_session_state["/photo_path"] = "data:image/jpeg;base64,existing"
+    mock_session_state["#photo_upload_tracking/photo_path"] = "old_file.jpg"
+
     with patch("photo_upload.st.session_state", mock_session_state):
         handle_photo_upload("/photo_path", "uploader_key")
 
-    assert "/photo_path" not in mock_session_state
+    assert mock_session_state["/photo_path"] is None
+    assert mock_session_state["#photo_upload_tracking/photo_path"] is None
 
 
 def test_handle_photo_upload_processes_valid_image(
     mock_session_state, sample_face_bytes
 ):
     """Test that handle_photo_upload successfully processes a valid image."""
-    mock_file = MockUploadedFile(sample_face_bytes, mime_type="image/jpeg")
+    mock_file = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="test.jpg"
+    )
     mock_session_state["uploader_key"] = mock_file
 
     with patch("photo_upload.st.session_state", mock_session_state):
@@ -83,11 +89,34 @@ def test_handle_photo_upload_processes_valid_image(
 
     assert "/photo_path" in mock_session_state
     assert mock_session_state["/photo_path"].startswith("data:image/jpeg;base64,")
+    assert mock_session_state["#photo_upload_tracking/photo_path"] == "test.jpg"
+
+
+def test_handle_photo_upload_skips_already_processed_file(
+    mock_session_state, sample_face_bytes
+):
+    """Test that handle_photo_upload skips processing if file already processed."""
+    mock_file = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="test.jpg"
+    )
+    mock_session_state["uploader_key"] = mock_file
+    mock_session_state["#photo_upload_tracking/photo_path"] = "test.jpg"
+    mock_session_state["/photo_path"] = "data:image/jpeg;base64,existing"
+
+    initial_photo = mock_session_state["/photo_path"]
+
+    with patch("photo_upload.st.session_state", mock_session_state):
+        handle_photo_upload("/photo_path", "uploader_key")
+
+    # Photo should not be reprocessed
+    assert mock_session_state["/photo_path"] == initial_photo
 
 
 def test_handle_photo_upload_handles_unsupported_image_type(mock_session_state):
     """Test that handle_photo_upload handles UnsupportedImageTypeError gracefully."""
-    mock_file = MockUploadedFile(b"not-an-image", mime_type="application/pdf")
+    mock_file = MockUploadedFile(
+        b"not-an-image", mime_type="application/pdf", name="test.pdf"
+    )
     mock_session_state["uploader_key"] = mock_file
 
     mock_st = MagicMock()
@@ -98,13 +127,15 @@ def test_handle_photo_upload_handles_unsupported_image_type(mock_session_state):
 
     # Error should be displayed
     mock_st.error.assert_called_once()
-    # Photo path should not be set
-    assert "/photo_path" not in mock_session_state
+    # Photo path should be cleared
+    assert mock_session_state["/photo_path"] is None
 
 
 def test_handle_photo_upload_handles_value_error(mock_session_state, sample_face_bytes):
     """Test that handle_photo_upload handles ValueError gracefully."""
-    mock_file = MockUploadedFile(sample_face_bytes, mime_type="image/jpeg")
+    mock_file = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="test.jpg"
+    )
     mock_session_state["uploader_key"] = mock_file
 
     mock_st = MagicMock()
@@ -122,13 +153,15 @@ def test_handle_photo_upload_handles_value_error(mock_session_state, sample_face
     # Error should be displayed with proper message
     mock_st.error.assert_called_once()
     assert "Error processing uploaded file" in str(mock_st.error.call_args)
-    # Photo path should not be set
-    assert "/photo_path" not in mock_session_state
+    # Photo path should be cleared
+    assert mock_session_state["/photo_path"] is None
 
 
 def test_handle_photo_upload_handles_type_error(mock_session_state, sample_face_bytes):
     """Test that handle_photo_upload handles TypeError gracefully."""
-    mock_file = MockUploadedFile(sample_face_bytes, mime_type="image/jpeg")
+    mock_file = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="test.jpg"
+    )
     mock_session_state["uploader_key"] = mock_file
 
     mock_st = MagicMock()
@@ -146,15 +179,17 @@ def test_handle_photo_upload_handles_type_error(mock_session_state, sample_face_
     # Error should be displayed with proper message
     mock_st.error.assert_called_once()
     assert "Error processing uploaded file" in str(mock_st.error.call_args)
-    # Photo path should not be set
-    assert "/photo_path" not in mock_session_state
+    # Photo path should be cleared
+    assert mock_session_state["/photo_path"] is None
 
 
 def test_handle_photo_upload_handles_generic_exception(
     mock_session_state, sample_face_bytes
 ):
     """Test that handle_photo_upload handles generic exceptions gracefully."""
-    mock_file = MockUploadedFile(sample_face_bytes, mime_type="image/jpeg")
+    mock_file = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="test.jpg"
+    )
     mock_session_state["uploader_key"] = mock_file
 
     mock_st = MagicMock()
@@ -172,15 +207,17 @@ def test_handle_photo_upload_handles_generic_exception(
     # Error should be displayed with proper message
     mock_st.error.assert_called_once()
     assert "Unexpected error processing photo" in str(mock_st.error.call_args)
-    # Photo path should not be set
-    assert "/photo_path" not in mock_session_state
+    # Photo path should be cleared
+    assert mock_session_state["/photo_path"] is None
 
 
 def test_handle_photo_upload_stores_data_uri_on_success(
     mock_session_state, sample_face_bytes
 ):
     """Test that handle_photo_upload stores the data URI in session state on success."""
-    mock_file = MockUploadedFile(sample_face_bytes, mime_type="image/jpeg")
+    mock_file = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="test.jpg"
+    )
     mock_session_state["uploader_key"] = mock_file
 
     expected_data_uri = "data:image/jpeg;base64,abc123"
@@ -199,3 +236,65 @@ def test_handle_photo_upload_stores_data_uri_on_success(
 
     # Data URI should be stored in session state
     assert mock_session_state["/photo_path"] == expected_data_uri
+    assert mock_session_state["#photo_upload_tracking/photo_path"] == "test.jpg"
+
+
+def test_handle_photo_upload_processes_new_file_replacing_old(
+    mock_session_state, sample_face_bytes
+):
+    """Test that uploading a different file to the same uploader works correctly."""
+    # First upload
+    mock_file_1 = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="photo1.jpg"
+    )
+    mock_session_state["uploader_key"] = mock_file_1
+
+    with patch("photo_upload.st.session_state", mock_session_state):
+        handle_photo_upload("/photo_path", "uploader_key")
+
+    assert mock_session_state["/photo_path"] is not None
+    assert mock_session_state["#photo_upload_tracking/photo_path"] == "photo1.jpg"
+
+    # Second upload with different file to the same uploader
+    mock_file_2 = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="photo2.jpg"
+    )
+    mock_session_state["uploader_key"] = mock_file_2
+
+    with patch("photo_upload.st.session_state", mock_session_state):
+        handle_photo_upload("/photo_path", "uploader_key")
+
+    # Should process the new file and update tracking
+    assert mock_session_state["/photo_path"] is not None
+    assert mock_session_state["#photo_upload_tracking/photo_path"] == "photo2.jpg"
+
+
+def test_multiple_uploaders_track_independently(mock_session_state, sample_face_bytes):
+    """Test that multiple uploaders on the same page track independently."""
+    # Upload to first missionary
+    mock_file_1 = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="missionary1.jpg"
+    )
+    mock_session_state["uploader_key_missionary_0"] = mock_file_1
+
+    with patch("photo_upload.st.session_state", mock_session_state):
+        handle_photo_upload("/photo_path_0", "uploader_key_missionary_0")
+
+    # Upload to second missionary
+    mock_file_2 = MockUploadedFile(
+        sample_face_bytes, mime_type="image/jpeg", name="missionary2.jpg"
+    )
+    mock_session_state["uploader_key_missionary_1"] = mock_file_2
+
+    with patch("photo_upload.st.session_state", mock_session_state):
+        handle_photo_upload("/photo_path_1", "uploader_key_missionary_1")
+
+    # Both should be processed with independent tracking
+    assert mock_session_state["/photo_path_0"] is not None
+    assert mock_session_state["/photo_path_1"] is not None
+    assert (
+        mock_session_state["#photo_upload_tracking/photo_path_0"] == "missionary1.jpg"
+    )
+    assert (
+        mock_session_state["#photo_upload_tracking/photo_path_1"] == "missionary2.jpg"
+    )
