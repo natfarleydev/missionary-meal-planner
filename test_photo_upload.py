@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import base64
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from photo_processing import ProcessedPhoto, UnsupportedImageTypeError
+from photo_processing import ProcessedPhoto
 from photo_upload import get_uploaded_file_from_session_state, handle_photo_upload
 
 
