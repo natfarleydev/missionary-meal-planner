@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass
-from pathlib import Path
-import tempfile
+from functools import lru_cache
 from typing import TYPE_CHECKING, Final
 
 import cv2
 import numpy as np
-from PyFaceCrop.face_crop import FaceCrop
+from PyFaceCrop.face_crop import get_haarcascade_path
 
 if TYPE_CHECKING:
     import streamlit as st
@@ -26,12 +25,12 @@ class UnsupportedImageTypeError(PhotoProcessingError):
     """Raised when an uploaded file is not a supported image type."""
 
 
-class VideoEncodingError(PhotoProcessingError):
-    """Raised when a temporary video cannot be created."""
-
-
 class ImageDecodingError(PhotoProcessingError):
     """Raised when the uploaded bytes cannot be decoded into an image."""
+
+
+class CascadeLoadingError(PhotoProcessingError):
+    """Raised when Haar cascade resources cannot be loaded."""
 
 
 @dataclass(frozen=True)
@@ -45,7 +44,6 @@ class ProcessedPhoto:
 
 _DEFAULT_PADDING: Final[int] = 240
 _FALLBACK_MIME: Final[str] = "image/jpeg"
-_VIDEO_FOURCC: Final[int] = cv2.VideoWriter_fourcc(*"mp4v")
 
 
 def process_uploaded_photo(
@@ -62,19 +60,7 @@ def process_uploaded_photo(
     image_bytes = read_uploaded_file_bytes(uploaded_file)
     image = _bytes_to_image(image_bytes)
 
-    with (
-        tempfile.TemporaryDirectory() as root_dir,
-        tempfile.TemporaryDirectory() as dest_dir,
-    ):
-        video_path = Path(root_dir) / "uploaded.mp4"
-        _write_single_frame_video(video_path, image)
-
-        face_cropper = FaceCrop(
-            root_dir, dest_dir, interval_seconds=0, padding=max(padding, 0)
-        )
-        face_cropper.generate()
-
-        cropped_bytes = _read_first_cropped_image(Path(dest_dir), video_path.stem)
+    cropped_bytes = _crop_face_to_bytes(image, padding=max(padding, 0))
 
     if cropped_bytes is None:
         payload = base64.b64encode(image_bytes).decode("utf-8")
@@ -99,30 +85,58 @@ def _bytes_to_image(image_bytes: bytes) -> np.ndarray:
     return image
 
 
-def _write_single_frame_video(path: Path, image: np.ndarray) -> None:
-    height, width = image.shape[:2]
-    writer = cv2.VideoWriter(str(path), _VIDEO_FOURCC, 1, (width, height))
-    if not writer.isOpened():  # pragma: no cover - depends on system codecs
-        raise VideoEncodingError("Unable to create temporary video")
-
+def _crop_face_to_bytes(image: np.ndarray, padding: int) -> bytes | None:
     try:
-        # Write at least two frames to help detectors stabilise.
-        for _ in range(2):
-            writer.write(image)
-    finally:
-        writer.release()
+        face_cascade, eye_cascade = _load_classifiers()
+    except cv2.error as exc:  # pragma: no cover - defensive
+        raise CascadeLoadingError("Unable to initialise face detectors") from exc
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    faces = face_cascade.detectMultiScale(
+        gray,
+        scaleFactor=1.3,
+        minNeighbors=5,
+        flags=cv2.CASCADE_SCALE_IMAGE,
+    )
+
+    for x, y, w, h in faces:
+        roi_gray = gray[y : y + h, x : x + w]
+        eyes = eye_cascade.detectMultiScale(roi_gray)
+        if len(eyes) == 0:
+            continue
+
+        start_x = max(x - padding, 0)
+        start_y = max(y - padding, 0)
+        end_x = min(x + w + padding, image.shape[1])
+        end_y = min(y + h + padding, image.shape[0])
+
+        cropped = image[start_y:end_y, start_x:end_x]
+        success, buffer = cv2.imencode(".jpg", cropped)
+        if success:
+            return bytes(buffer)
+
+    return None
 
 
-def _read_first_cropped_image(destination_dir: Path, stem: str) -> bytes | None:
-    target_dir = destination_dir / stem
-    if not target_dir.exists():
-        return None
-
-    candidates = sorted(target_dir.glob("*.jpg"))
-    if not candidates:
-        return None
-
+@lru_cache(maxsize=1)
+def _load_classifiers() -> tuple[cv2.CascadeClassifier, cv2.CascadeClassifier]:
     try:
-        return candidates[0].read_bytes()
-    except OSError:  # pragma: no cover - unlikely but defensive
-        return None
+        face_path = get_haarcascade_path("haarcascade_frontalface_default.xml")
+        eye_path = get_haarcascade_path("haarcascade_eye.xml")
+    except (
+        FileNotFoundError,
+        TypeError,
+        ValueError,
+    ) as exc:  # pragma: no cover - defensive
+        raise CascadeLoadingError("Unable to locate Haar cascade resources") from exc
+
+    face_cascade = cv2.CascadeClassifier(face_path)
+    eye_cascade = cv2.CascadeClassifier(eye_path)
+
+    if (
+        face_cascade.empty() or eye_cascade.empty()
+    ):  # pragma: no cover - depends on cv2 data
+        raise CascadeLoadingError("Unable to load Haar cascade resources")
+
+    return face_cascade, eye_cascade

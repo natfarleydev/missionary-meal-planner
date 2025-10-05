@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import pytest
 
+import photo_processing
 from photo_processing import (
     ProcessedPhoto,
     UnsupportedImageTypeError,
@@ -41,10 +42,29 @@ def sample_face_bytes() -> bytes:
     return Path("face_example.jpg").read_bytes()
 
 
-def test_process_uploaded_photo_crops_face(sample_face_bytes: bytes) -> None:
+class DummyCascade:
+    def __init__(self, detections: np.ndarray) -> None:
+        self._detections = detections
+
+    def detectMultiScale(self, *_: object, **__: object) -> np.ndarray:  # noqa: N802
+        return self._detections
+
+
+def test_process_uploaded_photo_crops_face(
+    sample_face_bytes: bytes, monkeypatch: pytest.MonkeyPatch
+) -> None:
     upload = MockUpload(sample_face_bytes, mime_type="image/jpeg", name="face.jpg")
 
-    result = process_uploaded_photo(upload)
+    faces = np.array([[10, 20, 30, 40]], dtype=np.int32)
+    eyes = np.array([[5, 5, 10, 10]], dtype=np.int32)
+
+    monkeypatch.setattr(
+        photo_processing,
+        "_load_classifiers",
+        lambda: (DummyCascade(faces), DummyCascade(eyes)),
+    )
+
+    result = process_uploaded_photo(upload, padding=0)
 
     assert isinstance(result, ProcessedPhoto)
     assert result.cropped is True
@@ -52,13 +72,28 @@ def test_process_uploaded_photo_crops_face(sample_face_bytes: bytes) -> None:
     assert result.data_uri.startswith("data:image/jpeg;base64,")
 
     encoded_bytes = base64.b64decode(result.data_uri.split(",", 1)[1])
-    assert len(encoded_bytes) < len(sample_face_bytes)
+    decoded = cv2.imdecode(
+        np.frombuffer(encoded_bytes, dtype=np.uint8), cv2.IMREAD_COLOR
+    )
+    assert decoded is not None
+    assert decoded.shape[:2] == (40, 30)
 
 
-def test_process_uploaded_photo_returns_original_when_no_face_detected() -> None:
+def test_process_uploaded_photo_returns_original_when_no_face_detected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     blank = np.zeros((200, 200, 3), dtype=np.uint8)
     blank_bytes = _encode_image(blank, ext=".png")
     upload = MockUpload(blank_bytes, mime_type="image/png", name="blank.png")
+
+    monkeypatch.setattr(
+        photo_processing,
+        "_load_classifiers",
+        lambda: (
+            DummyCascade(np.empty((0, 4), dtype=np.int32)),
+            DummyCascade(np.empty((0, 4), dtype=np.int32)),
+        ),
+    )
 
     result = process_uploaded_photo(upload)
 
