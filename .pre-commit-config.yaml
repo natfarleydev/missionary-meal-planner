@@ -4,7 +4,7 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        entry: uv run python -m pytest
+        entry: bash -lc 'command -v uv >/dev/null 2>&1 && uv run python -m pytest || python -m pytest'
         language: system
         pass_filenames: false
         files: \.py$
