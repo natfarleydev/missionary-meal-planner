@@ -245,7 +245,6 @@ def main():
                             icon="⚠️",
                         )
                         st.session_state[photo_path] = None
-                        st.rerun()
 
                     def _on_change(
                         photo_path: str = photo_path, uploader_key: str = uploader_key
