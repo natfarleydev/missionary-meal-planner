@@ -81,21 +81,21 @@ def display_uploaded_photo(
 log = structlog.get_logger()
 
 
-# Config stuff
-st.session_state["#should_fetch_from_local_storage"] = st.session_state.get(
-    "#should_fetch_from_local_storage", True
-)
-if (
-    st.session_state["#should_fetch_from_local_storage"]
-    and (local_storage_data := get_app_state_from_local_storage()) is not None
-):
-    # this is a one time check, so we indicate that we've done it
-    st.session_state["#should_fetch_from_local_storage"] = False
-    # OK, here we check if the session state is empty, if so, we create a default state
-    log.info("Found data in local storage", local_storage_data=local_storage_data)
-    for key, value in local_storage_data.to_session_state().items():
-        log.info("Setting session state", key=key, value=value)
-        st.session_state[key] = value
+# Config stuff - Local storage restoration should only happen ONCE per session
+# Check if we should fetch from local storage (default to True on first load)
+if "#local_storage_restored" not in st.session_state:
+    # Mark that we're attempting restoration (prevents multiple attempts)
+    st.session_state["#local_storage_restored"] = True
+
+    # Attempt to restore from local storage
+    local_storage_data = get_app_state_from_local_storage()
+    if local_storage_data is not None:
+        log.info("Found data in local storage", local_storage_data=local_storage_data)
+        for key, value in local_storage_data.to_session_state().items():
+            log.info("Setting session state from local storage", key=key, value=value)
+            st.session_state[key] = value
+    else:
+        log.info("No data found in local storage or restoration skipped")
 
 default_state = AppState.create_default()
 for key, value in default_state.to_session_state().items():
