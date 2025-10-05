@@ -94,6 +94,21 @@ if (
     # OK, here we check if the session state is empty, if so, we create a default state
     log.info("Found data in local storage", local_storage_data=local_storage_data)
     for key, value in local_storage_data.to_session_state().items():
+        # Skip restoring photo data if there's a tracking key indicating a recent upload
+        # This prevents the race condition where local storage overwrites newly uploaded photos
+        if key.endswith("/photo"):
+            tracking_key = f"#photo_upload_tracking{key}"
+            if (
+                tracking_key in st.session_state
+                and st.session_state[tracking_key] is not None
+            ):
+                log.info(
+                    "Skipping photo restoration due to recent upload",
+                    key=key,
+                    tracking_key=tracking_key,
+                )
+                continue
+
         log.info("Setting session state", key=key, value=value)
         st.session_state[key] = value
 
