@@ -9,7 +9,10 @@ from local_storage import (
     get_app_state_from_local_storage,
     save_app_state_to_local_storage,
 )
-from photo_upload import handle_photo_upload
+from photo_processing import (
+    UnsupportedImageTypeError,
+    process_uploaded_photo,
+)
 from state_model import AppState
 from utils import is_valid_photo_data_uri, photo_data_uri_to_bytes
 
@@ -241,14 +244,40 @@ def main():
                         st.session_state[photo_path] = None
                         st.rerun()
 
-                    st.file_uploader(
+                    uploaded_file = st.file_uploader(
                         f"Photo for Missionary {missionary_index + 1} (optional)",
                         type=["png", "jpg", "jpeg", "gif", "webp"],
                         help="Upload a clear photo of the missionary",
                         key=uploader_key,
-                        on_change=handle_photo_upload,
-                        args=(photo_path, uploader_key),
                     )
+
+                    # Process uploaded file if present and not already processed
+                    if uploaded_file is not None:
+                        # Check if this is a new upload by comparing with stored value
+                        current_photo = st.session_state.get(photo_path)
+
+                        # Only process if we don't have a photo yet or if it's different
+                        # We use a separate key to track the last processed file
+                        last_processed_key = f"{uploader_key}_last_processed"
+                        last_processed_name = st.session_state.get(last_processed_key)
+
+                        if (
+                            last_processed_name != uploaded_file.name
+                            or not current_photo
+                        ):
+                            try:
+                                processed = process_uploaded_photo(uploaded_file)
+                                st.session_state[photo_path] = processed.data_uri
+                                st.session_state[last_processed_key] = (
+                                    uploaded_file.name
+                                )
+                                st.rerun()
+                            except UnsupportedImageTypeError as exc:
+                                st.error(str(exc))
+                            except (ValueError, TypeError) as exc:
+                                st.error(f"Error processing uploaded file: {exc}")
+                            except Exception as exc:
+                                st.error(f"Unexpected error processing photo: {exc}")
 
     # Generate button
     if st.button("🍽️ Generate Meal Planner", type="primary", width="stretch"):
