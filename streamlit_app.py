@@ -31,23 +31,7 @@ def _get_photo_state(photo_value: object) -> PhotoState:
     return PhotoState.READY
 
 
-def handle_uploaded_photo(photo_path: str, uploader_key: str) -> None:
-    """Handle photo upload using the file uploader's on_change callback.
-
-    This function is called as a callback when the file uploader changes.
-    It retrieves the uploaded file from the session state using the uploader_key,
-    processes it, and stores the result in the photo_path.
-
-    Args:
-        photo_path: The session state key where the processed photo data URI will be stored
-        uploader_key: The key of the file uploader widget to retrieve the uploaded file from
-    """
-    uploaded_file = st.session_state.get(uploader_key)
-
-    # If no file is uploaded or file was cleared, do nothing
-    if uploaded_file is None:
-        return
-
+def handle_uploaded_photo(photo_path: str, uploaded_file: object) -> None:
     try:
         processed = process_uploaded_photo(uploaded_file)
     except UnsupportedImageTypeError as exc:
@@ -61,6 +45,7 @@ def handle_uploaded_photo(photo_path: str, uploader_key: str) -> None:
         return
 
     st.session_state[photo_path] = processed.data_uri
+    st.rerun()
 
 
 def display_uploaded_photo(
@@ -276,14 +261,15 @@ def main():
                         st.session_state[photo_path] = None
                         st.rerun()
 
-                    st.file_uploader(
+                    uploaded_file = st.file_uploader(
                         f"Photo for Missionary {missionary_index + 1} (optional)",
                         type=["png", "jpg", "jpeg", "gif", "webp"],
                         help="Upload a clear photo of the missionary",
                         key=uploader_key,
-                        on_change=handle_uploaded_photo,
-                        args=(photo_path, uploader_key),
                     )
+
+                    if uploaded_file is not None:
+                        handle_uploaded_photo(photo_path, uploaded_file)
 
     # Generate button
     if st.button("🍽️ Generate Meal Planner", type="primary", width="stretch"):

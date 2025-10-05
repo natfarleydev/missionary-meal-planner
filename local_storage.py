@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import base64
 import binascii
-import io
+import imghdr
 import json
 import re
 from typing import Any
 
-from PIL import Image
 import streamlit as st
 from streamlit_js_eval import streamlit_js_eval
 import structlog
@@ -153,17 +152,8 @@ def _coerce_photo_value(value: Any) -> str | None:
 
 
 def _guess_mime_type(data: bytes) -> str | None:
-    """Detect image type from bytes using PIL."""
-    try:
-        with Image.open(io.BytesIO(data)) as img:
-            # Get the format (e.g., 'PNG', 'JPEG', 'GIF')
-            fmt = img.format
-            if fmt is None:
-                return None
-
-            # Convert to lowercase for lookup
-            kind = fmt.lower()
-            return _IMAGE_KIND_TO_MIME.get(kind)
-    except (OSError, ValueError):
-        # Not a valid image
+    kind = imghdr.what(None, data)
+    if kind is None:
         return None
+
+    return _IMAGE_KIND_TO_MIME.get(kind.lower())
