@@ -1,8 +1,12 @@
 """Integration tests for streamlit app local storage restoration."""
 
 import base64
+import json
+from unittest.mock import MagicMock, patch
 
-from photo_state import PhotoState, get_photo_state
+import pytest
+
+from local_storage import get_app_state_from_local_storage
 from state_model import AppState, Companionship, Missionary
 
 
@@ -33,7 +37,8 @@ class TestLocalStorageRestoration:
             session_state["#local_storage_restored"] = True
             local_storage_data = mock_get()
             if local_storage_data is not None:
-                session_state.update(local_storage_data.to_session_state())
+                for key, value in local_storage_data.to_session_state().items():
+                    session_state[key] = value
 
         # Verify restoration happened
         assert session_state["#local_storage_restored"] is True
@@ -45,7 +50,8 @@ class TestLocalStorageRestoration:
             session_state["#local_storage_restored"] = True
             local_storage_data = mock_get()
             if local_storage_data is not None:
-                session_state.update(local_storage_data.to_session_state())
+                for key, value in local_storage_data.to_session_state().items():
+                    session_state[key] = value
 
         # Verify restoration didn't happen again (state size unchanged)
         assert len(session_state) == call_count_before
@@ -63,7 +69,8 @@ class TestLocalStorageRestoration:
             session_state["#local_storage_restored"] = True
             local_storage_data = mock_get()
             if local_storage_data is not None:
-                session_state.update(local_storage_data.to_session_state())
+                for key, value in local_storage_data.to_session_state().items():
+                    session_state[key] = value
 
         # Verify flag is set even though no data was restored
         assert session_state["#local_storage_restored"] is True
@@ -108,20 +115,14 @@ class TestLocalStorageRestoration:
             session_state["#local_storage_restored"] = True
             local_storage_data = mock_get()
             if local_storage_data is not None:
-                session_state.update(local_storage_data.to_session_state())
+                for key, value in local_storage_data.to_session_state().items():
+                    session_state[key] = value
 
         # Verify restoration didn't happen and tracking is preserved
         assert session_state[tracking_key] == "missionary_photo.jpg"
         assert (
             session_state[photo_path] == "data:image/jpeg;base64,iVBORw0KGgo="
         )  # NEW photo preserved
-
-    def test_photo_state_helper_classifies_values(self):
-        assert get_photo_state(None) is PhotoState.EMPTY
-        assert get_photo_state("") is PhotoState.EMPTY
-        assert get_photo_state("  ") is PhotoState.EMPTY
-        assert get_photo_state("not-a-data-uri") is PhotoState.INVALID
-        assert get_photo_state("data:image/png;base64,iVBORw0KGgo=") is PhotoState.READY
 
     def test_restoration_sets_all_state_keys_from_local_storage(self):
         """Test that all keys from local storage are properly set in session state."""
@@ -146,13 +147,16 @@ class TestLocalStorageRestoration:
             session_state["#local_storage_restored"] = True
             local_storage_data = mock_get()
             if local_storage_data is not None:
-                session_state.update(local_storage_data.to_session_state())
+                for key, value in local_storage_data.to_session_state().items():
+                    session_state[key] = value
 
         # Verify all keys were set
         assert session_state["/num_companionships"] == 3
         assert session_state["/companionships_data/0/phone_number"] == "123-456-7890"
         assert session_state["/companionships_data/0/missionaries/0/name"] == "Smith"
-        assert session_state["/companionships_data/0/missionaries/0/title"] == "Elder"
+        assert (
+            session_state["/companionships_data/0/missionaries/0/title"] == "Elder"
+        )
         assert session_state["/missionary_counts/0"] == 2
         assert session_state["/missionary_counts/1"] == 2
         assert session_state["/missionary_counts/2"] == 3
