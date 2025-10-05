@@ -66,13 +66,13 @@ def test_handle_photo_upload_clears_state_when_no_file(mock_session_state):
     """Test that handle_photo_upload clears state when no file is uploaded."""
     # Pre-populate with existing data
     mock_session_state["/photo_path"] = "data:image/jpeg;base64,existing"
-    mock_session_state["uploader_key_last_processed"] = "old_file.jpg"
+    mock_session_state["#photo_upload_tracking/photo_path"] = "old_file.jpg"
 
     with patch("photo_upload.st.session_state", mock_session_state):
         handle_photo_upload("/photo_path", "uploader_key")
 
     assert mock_session_state["/photo_path"] is None
-    assert mock_session_state["uploader_key_last_processed"] is None
+    assert mock_session_state["#photo_upload_tracking/photo_path"] is None
 
 
 def test_handle_photo_upload_processes_valid_image(
@@ -89,7 +89,7 @@ def test_handle_photo_upload_processes_valid_image(
 
     assert "/photo_path" in mock_session_state
     assert mock_session_state["/photo_path"].startswith("data:image/jpeg;base64,")
-    assert mock_session_state["uploader_key_last_processed"] == "test.jpg"
+    assert mock_session_state["#photo_upload_tracking/photo_path"] == "test.jpg"
 
 
 def test_handle_photo_upload_skips_already_processed_file(
@@ -100,7 +100,7 @@ def test_handle_photo_upload_skips_already_processed_file(
         sample_face_bytes, mime_type="image/jpeg", name="test.jpg"
     )
     mock_session_state["uploader_key"] = mock_file
-    mock_session_state["uploader_key_last_processed"] = "test.jpg"
+    mock_session_state["#photo_upload_tracking/photo_path"] = "test.jpg"
     mock_session_state["/photo_path"] = "data:image/jpeg;base64,existing"
 
     initial_photo = mock_session_state["/photo_path"]
@@ -236,7 +236,7 @@ def test_handle_photo_upload_stores_data_uri_on_success(
 
     # Data URI should be stored in session state
     assert mock_session_state["/photo_path"] == expected_data_uri
-    assert mock_session_state["uploader_key_last_processed"] == "test.jpg"
+    assert mock_session_state["#photo_upload_tracking/photo_path"] == "test.jpg"
 
 
 def test_handle_photo_upload_processes_new_file_replacing_old(
@@ -253,7 +253,7 @@ def test_handle_photo_upload_processes_new_file_replacing_old(
         handle_photo_upload("/photo_path", "uploader_key")
 
     assert mock_session_state["/photo_path"] is not None
-    assert mock_session_state["uploader_key_last_processed"] == "photo1.jpg"
+    assert mock_session_state["#photo_upload_tracking/photo_path"] == "photo1.jpg"
 
     # Second upload with different file to the same uploader
     mock_file_2 = MockUploadedFile(
@@ -266,7 +266,7 @@ def test_handle_photo_upload_processes_new_file_replacing_old(
 
     # Should process the new file and update tracking
     assert mock_session_state["/photo_path"] is not None
-    assert mock_session_state["uploader_key_last_processed"] == "photo2.jpg"
+    assert mock_session_state["#photo_upload_tracking/photo_path"] == "photo2.jpg"
 
 
 def test_multiple_uploaders_track_independently(mock_session_state, sample_face_bytes):
@@ -293,10 +293,8 @@ def test_multiple_uploaders_track_independently(mock_session_state, sample_face_
     assert mock_session_state["/photo_path_0"] is not None
     assert mock_session_state["/photo_path_1"] is not None
     assert (
-        mock_session_state["uploader_key_missionary_0_last_processed"]
-        == "missionary1.jpg"
+        mock_session_state["#photo_upload_tracking/photo_path_0"] == "missionary1.jpg"
     )
     assert (
-        mock_session_state["uploader_key_missionary_1_last_processed"]
-        == "missionary2.jpg"
+        mock_session_state["#photo_upload_tracking/photo_path_1"] == "missionary2.jpg"
     )
