@@ -31,7 +31,8 @@ def _get_photo_state(photo_value: object) -> PhotoState:
     return PhotoState.READY
 
 
-def handle_uploaded_photo(photo_path: str, uploaded_file: object) -> None:
+def handle_uploaded_photo(photo_path: str, uploaded_path: str) -> None:
+    uploaded_file = st.session_state.get(uploaded_path)
     try:
         processed = process_uploaded_photo(uploaded_file)
     except UnsupportedImageTypeError as exc:
@@ -45,7 +46,6 @@ def handle_uploaded_photo(photo_path: str, uploaded_file: object) -> None:
         return
 
     st.session_state[photo_path] = processed.data_uri
-    st.rerun()
 
 
 def display_uploaded_photo(
@@ -64,7 +64,6 @@ def display_uploaded_photo(
         )
         st.session_state[photo_state_key] = ""
         st.rerun()
-        return
 
     photo_html = f"""
     <div style='display: flex; align-items: center; justify-content: center; padding: 0.25rem 0;'>
@@ -101,33 +100,6 @@ def display_uploaded_photo(
 log = structlog.get_logger()
 
 
-# Config stuff
-st.session_state["#should_fetch_from_local_storage"] = st.session_state.get(
-    "#should_fetch_from_local_storage", True
-)
-if (
-    st.session_state["#should_fetch_from_local_storage"]
-    and (local_storage_data := get_app_state_from_local_storage()) is not None
-):
-    # this is a one time check, so we indicate that we've done it
-    st.session_state["#should_fetch_from_local_storage"] = False
-    # OK, here we check if the session state is empty, if so, we create a default state
-    log.info("Found data in local storage", local_storage_data=local_storage_data)
-    for key, value in local_storage_data.to_session_state().items():
-        log.info("Setting session state", key=key, value=value)
-        st.session_state[key] = value
-
-default_state = AppState.create_default()
-for key, value in default_state.to_session_state().items():
-    if key not in st.session_state:
-        st.session_state[key] = value
-
-# Set up generated pdf bytes
-st.session_state["#generated_pdf_bytes"] = st.session_state.get(
-    "#generated_pdf_bytes", None
-)
-
-
 # Page configuration
 st.set_page_config(
     page_title="Missionary Meal Planner",
@@ -140,6 +112,31 @@ st.set_page_config(
 
 
 def main():
+    # Config stuff
+    st.session_state["#should_fetch_from_local_storage"] = st.session_state.get(
+        "#should_fetch_from_local_storage", True
+    )
+    if (
+        st.session_state["#should_fetch_from_local_storage"]
+        and (local_storage_data := get_app_state_from_local_storage()) is not None
+    ):
+        # this is a one time check, so we indicate that we've done it
+        st.session_state["#should_fetch_from_local_storage"] = False
+        # OK, here we check if the session state is empty, if so, we create a default state
+        log.info("Found data in local storage", local_storage_data=local_storage_data)
+        for key, value in local_storage_data.to_session_state().items():
+            log.info("Setting session state", key=key, value=value)
+            st.session_state[key] = value
+
+    default_state = AppState.create_default()
+    for key, value in default_state.to_session_state().items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+    # Set up generated pdf bytes
+    st.session_state["#generated_pdf_bytes"] = st.session_state.get(
+        "#generated_pdf_bytes", None
+    )
     # OK, here we check if the session state is empty, if so, we create a default state
     default_state = AppState.create_default()
     for key, value in default_state.to_session_state().items():
@@ -229,7 +226,7 @@ def main():
         for missionary_index in range(missionary_count):
             # Photo upload
             photo_path = f"/companionships_data/{companionship_index}/missionaries/{missionary_index}/photo"
-            uploader_key = f"#component/companionships_data/{companionship_index}/missionaries/{missionary_index}/photo_uploader"
+            uploader_key = f"#file_uploader/companionships_data/{companionship_index}/missionaries/{missionary_index}/photo"
 
             photo_status = _get_photo_state(st.session_state.get(photo_path))
 
@@ -261,32 +258,35 @@ def main():
                         st.session_state[photo_path] = None
                         st.rerun()
 
-                    uploaded_file = st.file_uploader(
+                    def _on_change(
+                        photo_path: str = photo_path, uploader_key: str = uploader_key
+                    ):
+                        handle_uploaded_photo(photo_path, uploader_key)
+
+                    st.file_uploader(
                         f"Photo for Missionary {missionary_index + 1} (optional)",
                         type=["png", "jpg", "jpeg", "gif", "webp"],
                         help="Upload a clear photo of the missionary",
                         key=uploader_key,
+                        on_change=_on_change,
                     )
 
-                    if uploaded_file is not None:
-                        handle_uploaded_photo(photo_path, uploaded_file)
-
-    # Generate button
     if st.button("🍽️ Generate Meal Planner", type="primary", width="stretch"):
         generate_meal_planner()
 
     # Display generated PDF if available
-    if st.session_state["/generated_pdf"]:
+    if st.session_state["/generated_pdf"] is not None:
         st.subheader("📋 Generated Meal Planner")
 
-        # Download button
-        st.download_button(
-            label="💾 Download PDF",
-            data=st.session_state["#generated_pdf_bytes"],
-            file_name="missionary_meal_planner.pdf",
-            mime="application/pdf",
-            width="stretch",
-        )
+        # TODO: if /generated_pdf is present but #generated_pdf_bytes is not, we need to generate the PDF
+        if st.session_state["#generated_pdf_bytes"] is not None:
+            st.download_button(
+                label="💾 Download PDF",
+                data=st.session_state["#generated_pdf_bytes"],
+                file_name="missionary_meal_planner.pdf",
+                mime="application/pdf",
+                width="stretch",
+            )
 
         # Display the PDF using an iframe
         pdf_html = f"""
