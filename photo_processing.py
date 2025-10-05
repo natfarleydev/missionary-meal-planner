@@ -6,11 +6,14 @@ import base64
 from dataclasses import dataclass
 from pathlib import Path
 import tempfile
-from typing import Any, Final
+from typing import TYPE_CHECKING, Final
 
 import cv2
 import numpy as np
 from PyFaceCrop.face_crop import FaceCrop
+
+if TYPE_CHECKING:
+    import streamlit as st
 
 from utils import guess_image_mime_type, read_uploaded_file_bytes
 
@@ -46,7 +49,7 @@ _VIDEO_FOURCC: Final[int] = cv2.VideoWriter_fourcc(*"mp4v")
 
 
 def process_uploaded_photo(
-    uploaded_file: Any, *, padding: int = _DEFAULT_PADDING
+    uploaded_file: st.UploadedFile, *, padding: int = _DEFAULT_PADDING
 ) -> ProcessedPhoto:
     """Process an uploaded file, returning a data URI of the cropped photo."""
 

@@ -7,7 +7,10 @@ import binascii
 import contextlib
 from pathlib import Path
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import streamlit as st
 
 
 def flatten_to_json_pointers(
@@ -356,7 +359,7 @@ def photo_data_uri_to_bytes(value: str) -> bytes:
     return base64.b64decode(match.group("payload"), validate=True)
 
 
-def guess_image_mime_type(uploaded_file: object) -> str | None:
+def guess_image_mime_type(uploaded_file: st.UploadedFile) -> str | None:
     mime_type = getattr(uploaded_file, "type", None)
     if isinstance(mime_type, str):
         normalized = mime_type.lower()

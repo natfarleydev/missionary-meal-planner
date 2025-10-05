@@ -9,10 +9,7 @@ from local_storage import (
     get_app_state_from_local_storage,
     save_app_state_to_local_storage,
 )
-from photo_processing import (
-    UnsupportedImageTypeError,
-    process_uploaded_photo,
-)
+from photo_processing import process_uploaded_photo
 from state_model import AppState
 from utils import is_valid_photo_data_uri, photo_data_uri_to_bytes
 
@@ -33,18 +30,10 @@ def _get_photo_state(photo_value: object) -> PhotoState:
 
 def handle_uploaded_photo(photo_path: str, uploaded_path: str) -> None:
     uploaded_file = st.session_state.get(uploaded_path)
-    try:
-        processed = process_uploaded_photo(uploaded_file)
-    except UnsupportedImageTypeError as exc:
-        st.error(str(exc))
+    if uploaded_file is None:
+        st.session_state[photo_path] = None
         return
-    except (ValueError, TypeError) as exc:
-        st.error(f"Error processing uploaded file: {exc}")
-        return
-    except Exception as exc:
-        st.error(f"Unexpected error processing photo: {exc}")
-        return
-
+    processed = process_uploaded_photo(uploaded_file)
     st.session_state[photo_path] = processed.data_uri
 
 
