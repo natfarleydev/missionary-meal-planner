@@ -31,7 +31,9 @@ def _get_photo_state(photo_value: object) -> PhotoState:
     return PhotoState.READY
 
 
-def handle_uploaded_photo(photo_path: str, uploaded_file: object) -> None:
+def handle_uploaded_photo(
+    photo_path: str, uploaded_file: object, *, should_rerun: bool = True
+) -> None:
     try:
         processed = process_uploaded_photo(uploaded_file)
     except UnsupportedImageTypeError as exc:
@@ -45,7 +47,27 @@ def handle_uploaded_photo(photo_path: str, uploaded_file: object) -> None:
         return
 
     st.session_state[photo_path] = processed.data_uri
-    st.rerun()
+    if should_rerun:
+        st.rerun()
+
+
+def _on_photo_upload_change(photo_path: str, uploader_key: str) -> None:
+    """Process an uploaded photo via widget on_change callback.
+
+    This avoids race conditions by reading the file from session_state after the
+    widget value has been committed, then clearing the widget state.
+    """
+
+    uploaded_file = st.session_state.get(uploader_key)
+    if uploaded_file is None:
+        return
+
+    # Perform processing without forcing an immediate rerun; callbacks trigger a rerun
+    # automatically when they complete.
+    handle_uploaded_photo(photo_path, uploaded_file, should_rerun=False)
+
+    # Clear the uploader's state to prevent duplicate processing on subsequent reruns.
+    st.session_state[uploader_key] = None
 
 
 def display_uploaded_photo(
@@ -146,7 +168,7 @@ def main():
         if key not in st.session_state:
             st.session_state[key] = value
 
-    for k in st.session_state:
+    for k in list(st.session_state.keys()):
         if (k.startswith("/companionships_data")) and (
             not any(
                 k.startswith(f"/companionships_data/{i}")
@@ -261,15 +283,14 @@ def main():
                         st.session_state[photo_path] = None
                         st.rerun()
 
-                    uploaded_file = st.file_uploader(
+                    st.file_uploader(
                         f"Photo for Missionary {missionary_index + 1} (optional)",
                         type=["png", "jpg", "jpeg", "gif", "webp"],
                         help="Upload a clear photo of the missionary",
                         key=uploader_key,
+                        on_change=_on_photo_upload_change,
+                        args=(photo_path, uploader_key),
                     )
-
-                    if uploaded_file is not None:
-                        handle_uploaded_photo(photo_path, uploaded_file)
 
     # Generate button
     if st.button("🍽️ Generate Meal Planner", type="primary", width="stretch"):
