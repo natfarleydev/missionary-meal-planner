@@ -133,4 +133,11 @@ dev-dependencies = [
     "pre-commit>=4.3.0",
     "pytest>=7.0.0",
     "ruff>=0.13.3",
+    "playwright>=1.48.0",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "e2e: marks end-to-end tests (deselect with -m 'not e2e')",
+]
+addopts = "-m 'not e2e'"
