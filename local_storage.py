@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import binascii
-import imghdr
+import io
 import json
 import re
 from typing import Any
@@ -152,8 +152,13 @@ def _coerce_photo_value(value: Any) -> str | None:
 
 
 def _guess_mime_type(data: bytes) -> str | None:
-    kind = imghdr.what(None, data)
-    if kind is None:
-        return None
-
-    return _IMAGE_KIND_TO_MIME.get(kind.lower())
+    try:
+        from PIL import Image
+        with io.BytesIO(data) as f:
+            img = Image.open(f)
+            format_name = img.format.lower() if img.format else None
+            if format_name:
+                return _IMAGE_KIND_TO_MIME.get(format_name)
+    except Exception:
+        pass
+    return None
