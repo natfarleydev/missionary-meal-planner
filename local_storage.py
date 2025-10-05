@@ -154,6 +154,7 @@ def _coerce_photo_value(value: Any) -> str | None:
 def _guess_mime_type(data: bytes) -> str | None:
     try:
         from PIL import Image
+
         with io.BytesIO(data) as f:
             img = Image.open(f)
             format_name = img.format.lower() if img.format else None
