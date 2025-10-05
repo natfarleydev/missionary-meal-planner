@@ -1,5 +1,4 @@
 import binascii
-from enum import Enum, auto
 
 import streamlit as st
 import structlog
@@ -9,23 +8,10 @@ from local_storage import (
     get_app_state_from_local_storage,
     save_app_state_to_local_storage,
 )
+from photo_state import PhotoState, get_photo_state
 from photo_upload import handle_photo_upload
 from state_model import AppState
-from utils import is_valid_photo_data_uri, photo_data_uri_to_bytes
-
-
-class PhotoState(Enum):
-    EMPTY = auto()
-    INVALID = auto()
-    READY = auto()
-
-
-def _get_photo_state(photo_value: object) -> PhotoState:
-    if not is_valid_photo_data_uri(photo_value):
-        if isinstance(photo_value, str) and photo_value.strip():
-            return PhotoState.INVALID
-        return PhotoState.EMPTY
-    return PhotoState.READY
+from utils import photo_data_uri_to_bytes
 
 
 def display_uploaded_photo(
@@ -126,14 +112,17 @@ def main():
         if key not in st.session_state:
             st.session_state[key] = value
 
-    for k in st.session_state:
-        if (k.startswith("/companionships_data")) and (
-            not any(
-                k.startswith(f"/companionships_data/{i}")
-                for i in range(st.session_state["/num_companionships"])
-            )
-        ):
-            del st.session_state[k]
+    keys_to_delete = [
+        k
+        for k in st.session_state
+        if k.startswith("/companionships_data")
+        and not any(
+            k.startswith(f"/companionships_data/{i}")
+            for i in range(st.session_state["/num_companionships"])
+        )
+    ]
+    for k in keys_to_delete:
+        del st.session_state[k]
 
     st.title("🍽️ Missionary Meal Planner")
 
@@ -211,7 +200,7 @@ def main():
             photo_path = f"/companionships_data/{companionship_index}/missionaries/{missionary_index}/photo"
             uploader_key = f"#component/companionships_data/{companionship_index}/missionaries/{missionary_index}/photo_uploader"
 
-            photo_status = _get_photo_state(st.session_state.get(photo_path))
+            photo_status = get_photo_state(st.session_state.get(photo_path))
 
             name_col, photo_col = st.columns(2)
 
