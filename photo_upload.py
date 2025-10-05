@@ -44,20 +44,32 @@ def handle_photo_upload(photo_path: str, uploader_key: str) -> None:
     """
     uploaded_file = get_uploaded_file_from_session_state(uploader_key)
 
-    # If no file is uploaded or file was cleared, do nothing
+    # If no file is uploaded or file was cleared, clear the photo and processed tracking
     if uploaded_file is None:
+        st.session_state[photo_path] = None
+        st.session_state[f"{uploader_key}_last_processed"] = None
+        return
+
+    # Deduplicate: only process if this is a new file
+    last_processed_name = st.session_state.get(f"{uploader_key}_last_processed")
+    if last_processed_name == uploaded_file.name:
+        # Already processed this file
         return
 
     try:
         processed = process_uploaded_photo(uploaded_file)
     except UnsupportedImageTypeError as exc:
         st.error(str(exc))
+        st.session_state[photo_path] = None
         return
     except (ValueError, TypeError) as exc:
         st.error(f"Error processing uploaded file: {exc}")
+        st.session_state[photo_path] = None
         return
     except Exception as exc:
         st.error(f"Unexpected error processing photo: {exc}")
+        st.session_state[photo_path] = None
         return
 
     st.session_state[photo_path] = processed.data_uri
+    st.session_state[f"{uploader_key}_last_processed"] = uploaded_file.name
