@@ -19,20 +19,24 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install uv
+    - name: Install dependencies
       run: |
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-
-    - name: Add uv to PATH
-      run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-    - name: Sync dependencies (prod + dev)
-      run: |
-        uv sync --dev
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        python - <<'PY'
+import tomllib, subprocess
+with open('pyproject.toml','rb') as f:
+    cfg = tomllib.load(f)
+deps = cfg.get('project',{}).get('dependencies',[])
+dev = cfg.get('tool',{}).get('uv',{}).get('dev-dependencies',[])
+pkgs = deps + dev
+if pkgs:
+    subprocess.check_call(['pip','install','-q',*pkgs])
+PY
 
     - name: Run unit tests (skip e2e)
       run: |
-        uv run python -m pytest -q -m 'not e2e'
+        pytest -q -m 'not e2e'
 
   e2e:
     runs-on: ubuntu-latest
@@ -46,19 +50,27 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install uv
+    - name: Install dependencies
       run: |
-        curl -LsSf https://astral.sh/uv/install.sh | sh
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        python - <<'PY'
+import tomllib, subprocess
+with open('pyproject.toml','rb') as f:
+    cfg = tomllib.load(f)
+deps = cfg.get('project',{}).get('dependencies',[])
+dev = cfg.get('tool',{}).get('uv',{}).get('dev-dependencies',[])
+pkgs = deps + dev
+if pkgs:
+    subprocess.check_call(['pip','install','-q',*pkgs])
+PY
 
-    - name: Add uv to PATH
-      run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-    - name: Sync dependencies (prod + dev)
+    - name: Install Playwright browsers
       run: |
-        uv sync --dev
+        python -m playwright install --with-deps
 
     - name: Run E2E tests
       env:
         STREAMLIT_HEADLESS: 'true'
       run: |
-        uv run python -m pytest -q -m e2e
+        pytest -q -m e2e
